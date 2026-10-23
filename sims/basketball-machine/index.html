@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#0b1220" />
+    <title>Basketball Machine — arcade shootout</title>
+    <script type="module" crossorigin src="/playground/sims/basketball-machine/assets/index-CtfIVNyO.js"></script>
+    <link rel="stylesheet" crossorigin href="/playground/sims/basketball-machine/assets/index-Vfelb0ZP.css">
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="c"></canvas>
+      <div id="hud">
+        <header class="top">
+          <a class="back" href="../../">← Playground</a>
+          <h1>Basketball Machine</h1>
+          <span id="total-score" class="pill" title="Career total">Σ 0</span>
+        </header>
+
+        <div class="stats">
+          <div class="stat">
+            <span class="label">Stage</span>
+            <span id="stage-label" class="value">1 · Steady Shot</span>
+          </div>
+          <div class="stat">
+            <span class="label">Score</span>
+            <span id="stage-score" class="value">0 / 20</span>
+          </div>
+          <div class="stat">
+            <span class="label">Time</span>
+            <span id="timer" class="value">0:45</span>
+          </div>
+          <div class="stat">
+            <span class="label">Streak</span>
+            <span id="streak" class="value">0</span>
+          </div>
+        </div>
+
+        <div id="banner" class="banner">Flick up to shoot · beat the clock</div>
+
+        <div id="overlay" class="overlay">
+          <div class="panel">
+            <p id="overlay-eyebrow" class="eyebrow">Arcade</p>
+            <h2 id="overlay-title">Basketball Machine</h2>
+            <p id="overlay-body" class="body">
+              Flick on the canvas to launch the ball. Make baskets before time runs out to clear each stage.
+            </p>
+            <ul id="overlay-rules" class="rules">
+              <li>Make <strong>2</strong> · Swish <strong>3</strong> · Streak 3+ <strong>+1</strong></li>
+              <li>Continuous shots · no ball limit</li>
+            </ul>
+            <button type="button" id="btn-primary" class="btn primary">Start</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
