@@ -324,6 +324,10 @@ let frozenBot = false
 let botPlan: ReturnType<typeof planReturn> | null = null
 let armPlayer = false
 let hitFrontOnServe = false
+/** After a legal serve bounce off the front wall, bot should return the rebound. */
+let awaitServeReturn = false
+/** Frames the ball has been nearly stopped on the floor (anti-flicker for "Ball died"). */
+let deadFrames = 0
 
 function enterAim(kind: 'serveAim' | 'playerAim') {
   const t = ballBody.translation()
@@ -362,10 +366,12 @@ function doHit() {
   if (phase === 'serveAim') {
     isServing = true
     hitFrontOnServe = false
+    awaitServeReturn = false
     pendingBot = true
   } else {
     pendingBot = true
   }
+  deadFrames = 0
   frozenBot = false
   botTimer = 0
   botPlan = null
@@ -386,6 +392,8 @@ function serve() {
   armPlayer = false
   frozenBot = false
   hitFrontOnServe = false
+  awaitServeReturn = false
+  deadFrames = 0
   setCameraServe(side)
   enterAim('serveAim')
 }
@@ -407,6 +415,8 @@ function applyServeSide(side: ServeSide) {
   armPlayer = false
   frozenBot = false
   hitFrontOnServe = false
+  awaitServeReturn = false
+  deadFrames = 0
   setCameraServe(side) // resets look toward front for that side
   enterAim('serveAim')
 }
@@ -450,6 +460,8 @@ function endPoint(msg: string, toBot: boolean) {
   armPlayer = false
   frozenBot = false
   isServing = false
+  awaitServeReturn = false
+  deadFrames = 0
   ballBody.setLinvel({ x: 0, y: 0, z: 0 }, true)
   ballBody.sleep()
   syncHud()
@@ -467,31 +479,48 @@ function checkPoint() {
     endPoint('Tin!', true)
     return
   }
-  if (isServing && t.z < 0.35 && t.y >= tin) {
+  // Front-wall contact during serve (near front, above tin)
+  if (isServing && t.z < 0.4 && t.y >= tin && Math.abs(v.z) > 0.5) {
     hitFrontOnServe = true
     isServing = false
+    awaitServeReturn = true
   }
   if (isServing && t.y < COURT.ballRadius + 0.05 && t.z > 0.5 && !hitFrontOnServe) {
     endPoint('Fault — serve must hit front wall first', true)
     return
   }
-  if (t.y < COURT.ballRadius + 0.04 && speed < 0.45 && store.getState().phase === 'rally') {
-    endPoint('Ball died', false)
+  // Don't call "Ball died" while serve is in flight or waiting for the bot return
+  const protect =
+    isServing || awaitServeReturn || pendingBot || frozenBot || store.getState().phase !== 'rally'
+  if (protect) {
+    deadFrames = 0
+    return
+  }
+  // Require ~0.5s nearly stopped on the floor (not a one-frame dip after a bounce)
+  if (t.y < COURT.ballRadius + 0.06 && speed < 0.35) {
+    deadFrames++
+    if (deadFrames > 30) endPoint('Ball died', true)
+  } else {
+    deadFrames = 0
   }
 }
 
 function tryBot(dt: number) {
-  if (!pendingBot || store.getState().phase !== 'rally' && store.getState().phase !== 'botTelegraph') return
+  if (!pendingBot || (store.getState().phase !== 'rally' && store.getState().phase !== 'botTelegraph')) return
   const t = ballBody.translation()
   const v = ballBody.linvel()
-  const towardBot = t.z < shortZ - 0.15 && v.z < -0.4
-  if (!towardBot && !frozenBot) return
+  // Inbound to front (rally), or rebound after a legal serve hit the front wall
+  const towardFront = t.z < shortZ - 0.1 && v.z < -0.35
+  const serveRebound =
+    awaitServeReturn && hitFrontOnServe && v.z > 0.25 && t.z > 0.45 && t.z < shortZ + 2.2
+  if (!towardFront && !serveRebound && !frozenBot) return
 
   const bot = store.getState().bot
   botTimer += dt
   if (!frozenBot) {
     if (botTimer < bot.reaction) return
     frozenBot = true
+    awaitServeReturn = false
     ballBody.setLinvel({ x: 0, y: 0, z: 0 }, true)
     ballBody.sleep()
     botPlan = planReturn(bot, t, { width: W, length: L, frontHeight: COURT.frontHeight, tin })
@@ -500,7 +529,7 @@ function tryBot(dt: number) {
     botTimer = 0
     return
   }
-  if (botTimer < 0.4) return
+  if (botTimer < 0.35) return
   const plan = botPlan!
   const from = ballBody.translation()
   const dir = new THREE.Vector3(plan.target.x - from.x, plan.target.y - from.y, plan.target.z - from.z).normalize()
@@ -514,6 +543,7 @@ function tryBot(dt: number) {
   botPlan = null
   botTimer = 0
   armPlayer = true
+  deadFrames = 0
 }
 
 function maybePlayerAim() {
