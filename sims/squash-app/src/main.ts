@@ -182,6 +182,30 @@ function lookToward(worldPoint: THREE.Vector3) {
   applyLook()
 }
 
+function lerpAngle(a: number, b: number, t: number) {
+  let d = b - a
+  while (d > Math.PI) d -= Math.PI * 2
+  while (d < -Math.PI) d += Math.PI * 2
+  return a + d * t
+}
+
+/** Smooth look at a world point (no snap). */
+function lookTowardSmooth(worldPoint: THREE.Vector3, t: number) {
+  const dx = worldPoint.x - camera.position.x
+  const dy = worldPoint.y - camera.position.y
+  const dz = worldPoint.z - camera.position.z
+  const yaw = Math.atan2(-dx, -dz)
+  const horiz = Math.hypot(dx, dz)
+  const pitch = THREE.MathUtils.clamp(
+    Math.atan2(dy, Math.max(0.01, horiz)),
+    PITCH_MIN,
+    PITCH_MAX,
+  )
+  look.yaw = lerpAngle(look.yaw, yaw, t)
+  look.pitch = THREE.MathUtils.lerp(look.pitch, pitch, t)
+  applyLook()
+}
+
 // --- Physics ---
 const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 })
 world.timestep = 1 / 60
@@ -305,16 +329,27 @@ let lookingDrag = false
 let lastPx = 0
 let lastPy = 0
 
-function setCameraRally() {
-  if (lookingDrag) return // user is looking around — don't overwrite
+/**
+ * Continuous chase cam: stays behind the ball toward the back wall,
+ * damps position + look so rallies have no jumps/cuts.
+ */
+function setCameraRally(dt: number) {
+  if (lookingDrag) return
   const t = ballBody.translation()
+  // Behind the ball (higher z), slightly offset toward center
   const desired = new THREE.Vector3(
-    THREE.MathUtils.clamp(t.x * 0.25, -1.4, 1.4),
-    1.55,
-    THREE.MathUtils.clamp(t.z + 1.6, shortZ + 0.2, L - 0.55),
+    THREE.MathUtils.clamp(t.x * 0.45, -1.8, 1.8),
+    THREE.MathUtils.clamp(1.35 + t.y * 0.15, 1.35, 2.05),
+    THREE.MathUtils.clamp(t.z + 2.15, 2.2, L - 0.4),
   )
-  camera.position.lerp(desired, 0.08)
-  lookToward(new THREE.Vector3(t.x * 0.4, Math.max(0.9, t.y), t.z))
+  // Keep a little distance if ball is deep near camera
+  if (desired.z - t.z < 1.4) desired.z = Math.min(L - 0.4, t.z + 1.4)
+  const k = 1 - Math.exp(-3.2 * dt) // frame-rate independent ease
+  camera.position.x = THREE.MathUtils.lerp(camera.position.x, desired.x, k)
+  camera.position.y = THREE.MathUtils.lerp(camera.position.y, desired.y, k)
+  camera.position.z = THREE.MathUtils.lerp(camera.position.z, desired.z, k)
+  const lookAt = new THREE.Vector3(t.x, Math.max(0.55, t.y), t.z)
+  lookTowardSmooth(lookAt, k)
 }
 
 let isServing = false
@@ -329,20 +364,12 @@ let awaitServeReturn = false
 let deadFrames = 0
 
 function enterAim(kind: 'serveAim' | 'playerAim') {
-  const t = ballBody.translation()
   ballBody.setLinvel({ x: 0, y: 0, z: 0 }, true)
   ballBody.setAngvel({ x: 0, y: 0, z: 0 }, true)
   ballBody.sleep()
   store.getState().setPhase(kind)
   store.getState().setBanner(kind === 'serveAim' ? 'Serve from the service box' : 'Your shot')
-  if (kind === 'playerAim') {
-    camera.position.set(
-      THREE.MathUtils.clamp(t.x * 0.3, -1.5, 1.5),
-      1.55,
-      Math.min(L - 0.5, Math.max(shortZ + 0.4, t.z + 0.5)),
-    )
-    lookToward(new THREE.Vector3(0, 1.35, FRONT_AIM_Z))
-  }
+  // Do NOT teleport the camera on player aim — keep the continuous rally follow pose
   updateAimMarker()
   syncHud()
 }
@@ -630,9 +657,13 @@ function frame(now: number) {
   last = now
   const phase = store.getState().phase
 
-  if (phase === 'serveAim' || phase === 'playerAim') {
-    // Only pause physics for YOUR aim (serve / return). Bot hits stay live.
+  if (phase === 'serveAim') {
+    // Serve setup only: planted at the box; drag to look
     applyLook()
+    updateAimMarker()
+  } else if (phase === 'playerAim') {
+    // Physics paused for your shot, but camera keeps soft-following the (frozen) ball — no cut
+    setCameraRally(dt)
     updateAimMarker()
   } else if (phase === 'rally') {
     acc += dt
@@ -644,7 +675,9 @@ function frame(now: number) {
     checkPoint()
     tryBot(dt)
     maybePlayerAim()
-    if (store.getState().phase === 'rally') setCameraRally()
+    if (store.getState().phase === 'rally' || store.getState().phase === 'playerAim') {
+      setCameraRally(dt)
+    }
   } else {
     applyLook()
   }
