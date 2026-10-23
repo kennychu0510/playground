@@ -29,11 +29,12 @@ const SHOOT_POS = new THREE.Vector3(0, 0.78, 1.02)
 /** Fixed arcade POV: behind trough, looking at backboard + rim. */
 const CAM_POS = new THREE.Vector3(0, 1.38, 2.15)
 const CAM_LOOK = new THREE.Vector3(0, 1.55, -1.55)
-const IMPULSE_SCALE = 0.72
-const MIN_FLICK = 160
-const MAX_FLICK = 1300
-const UP_BIAS = 0.62
-const FORWARD_BIAS = 0.95
+/** Lower scale + tighter clamp so iOS flicks stay arcade-controllable. */
+const IMPULSE_SCALE = 0.42
+const MIN_FLICK = 260
+const MAX_FLICK = 820
+const UP_BIAS = 0.58
+const FORWARD_BIAS = 0.88
 
 /** Interior half-width / depth / height for closed cabinet. */
 const CAB_HALF_W = 1.05
@@ -129,14 +130,13 @@ function hideOverlay() {
 // --- Three ---
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
-renderer.setSize(innerWidth, innerHeight)
 renderer.shadowMap.enabled = true
 
 const scene = new THREE.Scene()
 scene.background = new THREE.Color(0x0a1020)
 scene.fog = new THREE.Fog(0x0a1020, 9, 18)
 
-const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.05, 30)
+const camera = new THREE.PerspectiveCamera(52, 1, 0.05, 30)
 camera.position.copy(CAM_POS)
 camera.lookAt(CAM_LOOK)
 
@@ -712,15 +712,16 @@ function launchBall(dx: number, dy: number, speedPx: number) {
   }
   if (!ready) return // no ball available yet — wait for return
 
-  const speed = THREE.MathUtils.clamp(speedPx, MIN_FLICK, MAX_FLICK)
-  const power = (speed - MIN_FLICK) / (MAX_FLICK - MIN_FLICK)
-  const lateral = THREE.MathUtils.clamp(dx / 260, -1.0, 1.0)
-  const lift = THREE.MathUtils.clamp(dy / 400, -0.15, 1.35)
+  // Soften px/s → power so mid-flicks aren't near max
+  const speed = THREE.MathUtils.clamp(speedPx * 0.72, MIN_FLICK, MAX_FLICK)
+  const power = Math.pow((speed - MIN_FLICK) / (MAX_FLICK - MIN_FLICK), 0.9)
+  const lateral = THREE.MathUtils.clamp(dx / 280, -1.0, 1.0)
+  const lift = THREE.MathUtils.clamp(dy / 420, -0.1, 1.2)
 
-  const impulseY = UP_BIAS + lift * 0.8 + power * 0.48
-  const impulseZ = -(FORWARD_BIAS + power * 1.05 + Math.max(0, lift) * 0.2)
-  const impulseX = lateral * (0.48 + power * 0.3)
-  const scale = IMPULSE_SCALE * (0.88 + power * 0.5)
+  const impulseY = UP_BIAS + lift * 0.65 + power * 0.38
+  const impulseZ = -(FORWARD_BIAS + power * 0.85 + Math.max(0, lift) * 0.15)
+  const impulseX = lateral * (0.4 + power * 0.22)
+  const scale = IMPULSE_SCALE * (0.92 + power * 0.35)
 
   ready.ready = false
   ready.inFlight = true
@@ -875,7 +876,7 @@ function onPointerUp(e: PointerEvent) {
   const dy = a.y - b.y
   const dist = Math.hypot(dx, dy)
   const speed = (dist / dt) * 1000
-  if (dist < 20 || speed < MIN_FLICK * 0.4) return
+  if (dist < 28 || speed < MIN_FLICK * 0.55) return
   if (dy < -40 && Math.abs(dy) > Math.abs(dx) * 1.2) return
   launchBall(dx, Math.max(dy, dist * 0.35), speed)
 }
@@ -888,13 +889,28 @@ canvas.addEventListener('pointercancel', () => {
   trailMat.opacity = 0
 })
 
-addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight
+/** Prefer visualViewport so canvas fits above Safari's bottom chrome. */
+function getViewSize() {
+  const vv = window.visualViewport
+  if (vv && vv.width > 0 && vv.height > 0) {
+    return { w: Math.round(vv.width), h: Math.round(vv.height) }
+  }
+  return { w: innerWidth, h: innerHeight }
+}
+
+function fitRenderer() {
+  const { w, h } = getViewSize()
+  camera.aspect = w / Math.max(1, h)
   camera.updateProjectionMatrix()
-  renderer.setSize(innerWidth, innerHeight)
+  renderer.setSize(w, h)
   camera.position.copy(CAM_POS)
   camera.lookAt(CAM_LOOK)
-})
+}
+
+addEventListener('resize', fitRenderer)
+window.visualViewport?.addEventListener('resize', fitRenderer)
+window.visualViewport?.addEventListener('scroll', fitRenderer)
+fitRenderer()
 
 function processEvents() {
   eventQueue.drainCollisionEvents((h1, h2, started) => {
