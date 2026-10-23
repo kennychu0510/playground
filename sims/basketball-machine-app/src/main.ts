@@ -21,9 +21,11 @@ const btnPrimary = document.querySelector<HTMLButtonElement>('#btn-primary')!
 
 /** Compact arcade cabinet scale (metres). */
 const BALL_R = 0.105
+/** Total balls in circulation — typical arcade machine feel. */
+const BALL_COUNT = 9
 const GRAVITY = -12.5
 /** Ready-ball rest on the front trough / shelf. */
-const SHOOT_POS = new THREE.Vector3(0, 0.92, 0.95)
+const SHOOT_POS = new THREE.Vector3(0, 0.78, 1.02)
 /** Fixed arcade POV: behind trough, looking at backboard + rim. */
 const CAM_POS = new THREE.Vector3(0, 1.38, 2.15)
 const CAM_LOOK = new THREE.Vector3(0, 1.55, -1.55)
@@ -32,8 +34,13 @@ const MIN_FLICK = 160
 const MAX_FLICK = 1300
 const UP_BIAS = 0.62
 const FORWARD_BIAS = 0.95
-const MAX_FLIGHT_BALLS = 12
-const BALL_TTL_MS = 6500
+
+/** Interior half-width / depth / height for closed cabinet. */
+const CAB_HALF_W = 1.05
+const CAB_BACK_Z = -2.55
+const CAB_FRONT_Z = 1.28
+const CAB_CEIL_Y = 2.35
+const CAB_FLOOR_Y = 0.02
 
 const COL_RIM = 0x0001
 const COL_BOARD = 0x0002
@@ -61,7 +68,7 @@ const state: GameState = {
   totalScore: 0,
   streak: 0,
   timeLeft: STAGES[0]!.duration,
-  banner: 'Flick up to shoot · keep firing',
+  banner: 'Flick up to shoot · balls return on the ramp',
   bannerKind: '',
 }
 
@@ -127,94 +134,130 @@ renderer.shadowMap.enabled = true
 
 const scene = new THREE.Scene()
 scene.background = new THREE.Color(0x0a1020)
-scene.fog = new THREE.Fog(0x0a1020, 8, 16)
+scene.fog = new THREE.Fog(0x0a1020, 9, 18)
 
 const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.05, 30)
 camera.position.copy(CAM_POS)
 camera.lookAt(CAM_LOOK)
 
-scene.add(new THREE.HemisphereLight(0xc8d8ff, 0x1a2030, 0.9))
-const key = new THREE.DirectionalLight(0xffffff, 1.1)
-key.position.set(1.8, 6, 3)
+scene.add(new THREE.HemisphereLight(0xc8d8ff, 0x1a2030, 0.85))
+const key = new THREE.DirectionalLight(0xffffff, 1.05)
+key.position.set(1.6, 5.5, 2.8)
 key.castShadow = true
 key.shadow.mapSize.set(1024, 1024)
 scene.add(key)
-const fill = new THREE.PointLight(0xff8a3d, 0.55, 12)
-fill.position.set(-1.4, 1.8, 0.6)
+const fill = new THREE.PointLight(0xff8a3d, 0.5, 12)
+fill.position.set(-1.3, 1.7, 0.5)
 scene.add(fill)
-const hoopLight = new THREE.PointLight(0xfff2c8, 0.7, 6)
-hoopLight.position.set(0, 2.4, -1.6)
+const hoopLight = new THREE.PointLight(0xfff2c8, 0.75, 7)
+hoopLight.position.set(0, 2.2, -1.5)
 scene.add(hoopLight)
+const troughLight = new THREE.PointLight(0xffc978, 0.45, 4)
+troughLight.position.set(0, 1.2, 1.1)
+scene.add(troughLight)
 
 const root = new THREE.Group()
 scene.add(root)
 
-// Cabinet floor / deck
-const floor = new THREE.Mesh(
-  new THREE.BoxGeometry(2.4, 0.1, 4.2),
-  new THREE.MeshStandardMaterial({ color: 0x1a2740, roughness: 0.85, metalness: 0.05 }),
-)
-floor.position.set(0, -0.05, -0.55)
+const woodDark = new THREE.MeshStandardMaterial({ color: 0x6e1524, roughness: 0.55, metalness: 0.12 })
+const wallMat = new THREE.MeshStandardMaterial({ color: 0x2a3550, roughness: 0.65, metalness: 0.1 })
+const deckMat = new THREE.MeshStandardMaterial({ color: 0x1a2740, roughness: 0.85, metalness: 0.05 })
+const rampMat = new THREE.MeshStandardMaterial({ color: 0x243552, roughness: 0.7 })
+const glassMat = new THREE.MeshStandardMaterial({
+  color: 0xa8c4e8,
+  roughness: 0.12,
+  metalness: 0.15,
+  transparent: true,
+  opacity: 0.18,
+  side: THREE.DoubleSide,
+  depthWrite: false,
+})
+const railMat = new THREE.MeshStandardMaterial({ color: 0xf0b429, metalness: 0.55, roughness: 0.35 })
+
+// --- Visual cabinet ---
+// Base deck under play volume
+const floor = new THREE.Mesh(new THREE.BoxGeometry(CAB_HALF_W * 2 + 0.2, 0.08, 4.0), deckMat)
+floor.position.set(0, -0.04, -0.55)
 floor.receiveShadow = true
 root.add(floor)
 
-// Return ramp (angled floor toward front)
-const ramp = new THREE.Mesh(
-  new THREE.BoxGeometry(2.1, 0.06, 2.6),
-  new THREE.MeshStandardMaterial({ color: 0x243552, roughness: 0.7 }),
-)
-ramp.position.set(0, 0.08, -0.85)
-ramp.rotation.x = -0.08
+/**
+ * Return ramp: higher at the back (under hoop), lower toward the front trough
+ * so balls roll back to the player. Three.js +X rotation lowers +Z.
+ */
+const RAMP_ANGLE = 0.14
+const RAMP_LEN = 3.15
+const RAMP_Y = 0.22
+const RAMP_Z = -0.55
+const ramp = new THREE.Mesh(new THREE.BoxGeometry(CAB_HALF_W * 2 - 0.12, 0.05, RAMP_LEN), rampMat)
+ramp.position.set(0, RAMP_Y, RAMP_Z)
+ramp.rotation.x = RAMP_ANGLE
 ramp.receiveShadow = true
 root.add(ramp)
 
-// Front trough / ball shelf
+// Front trough / ball shelf (collection bin)
 const trough = new THREE.Mesh(
-  new THREE.BoxGeometry(1.6, 0.12, 0.55),
+  new THREE.BoxGeometry(1.7, 0.1, 0.5),
   new THREE.MeshStandardMaterial({ color: 0x8b1e2d, roughness: 0.5, metalness: 0.2 }),
 )
-trough.position.set(0, 0.72, 1.05)
+trough.position.set(0, 0.58, 1.05)
 trough.castShadow = true
+trough.receiveShadow = true
 root.add(trough)
 
-const troughLip = new THREE.Mesh(
-  new THREE.BoxGeometry(1.62, 0.05, 0.08),
-  new THREE.MeshStandardMaterial({ color: 0xf0b429, metalness: 0.45, roughness: 0.35 }),
-)
-troughLip.position.set(0, 0.82, 1.28)
+const troughLip = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.06, 0.07), railMat)
+troughLip.position.set(0, 0.68, 1.28)
 root.add(troughLip)
 
+// Side lips on trough so balls stay in the bin
+for (const x of [-0.82, 0.82]) {
+  const lip = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.12, 0.48), railMat)
+  lip.position.set(x, 0.7, 1.05)
+  root.add(lip)
+}
+
 // Cabinet front body under trough
-const cabinet = new THREE.Mesh(
-  new THREE.BoxGeometry(2.2, 0.85, 0.7),
-  new THREE.MeshStandardMaterial({ color: 0x6e1524, roughness: 0.55, metalness: 0.12 }),
-)
-cabinet.position.set(0, 0.35, 1.15)
+const cabinet = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.7, 0.65), woodDark)
+cabinet.position.set(0, 0.28, 1.18)
 cabinet.castShadow = true
 root.add(cabinet)
 
-// Side walls of the machine
-const wallMat = new THREE.MeshStandardMaterial({ color: 0x2a3550, roughness: 0.65, metalness: 0.1 })
-for (const x of [-1.15, 1.15]) {
-  const wall = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.9, 3.8), wallMat)
-  wall.position.set(x, 0.95, -0.4)
+// Side walls (visual)
+for (const x of [-CAB_HALF_W - 0.05, CAB_HALF_W + 0.05]) {
+  const wall = new THREE.Mesh(new THREE.BoxGeometry(0.1, CAB_CEIL_Y + 0.1, CAB_FRONT_Z - CAB_BACK_Z + 0.1), wallMat)
+  wall.position.set(x, CAB_CEIL_Y / 2, (CAB_FRONT_Z + CAB_BACK_Z) / 2)
   wall.castShadow = true
   root.add(wall)
 }
 
-// Back panel behind hoop
+// Back panel
 const backPanel = new THREE.Mesh(
-  new THREE.BoxGeometry(2.3, 2.4, 0.1),
+  new THREE.BoxGeometry(CAB_HALF_W * 2 + 0.2, CAB_CEIL_Y + 0.1, 0.1),
   new THREE.MeshStandardMaterial({ color: 0x121a2c, roughness: 0.8 }),
 )
-backPanel.position.set(0, 1.2, -2.55)
+backPanel.position.set(0, CAB_CEIL_Y / 2, CAB_BACK_Z - 0.05)
 root.add(backPanel)
 
-// Neon-ish side rails
-const railMat = new THREE.MeshStandardMaterial({ color: 0xf0b429, metalness: 0.55, roughness: 0.35 })
-for (const x of [-1.08, 1.08]) {
-  const rail = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 3.6), railMat)
-  rail.position.set(x, 1.82, -0.45)
+// Ceiling / top glass
+const ceiling = new THREE.Mesh(
+  new THREE.BoxGeometry(CAB_HALF_W * 2, 0.04, CAB_FRONT_Z - CAB_BACK_Z),
+  glassMat.clone(),
+)
+ceiling.position.set(0, CAB_CEIL_Y, (CAB_FRONT_Z + CAB_BACK_Z) / 2)
+root.add(ceiling)
+
+// Front glass pane (camera looks through; collider seals the cabinet)
+const frontGlass = new THREE.Mesh(
+  new THREE.BoxGeometry(CAB_HALF_W * 2 - 0.08, CAB_CEIL_Y - 0.75, 0.04),
+  glassMat,
+)
+frontGlass.position.set(0, (CAB_CEIL_Y + 0.75) / 2, CAB_FRONT_Z - 0.02)
+root.add(frontGlass)
+
+// Neon side rails
+for (const x of [-CAB_HALF_W + 0.02, CAB_HALF_W - 0.02]) {
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, CAB_FRONT_Z - CAB_BACK_Z - 0.2), railMat)
+  rail.position.set(x, CAB_CEIL_Y - 0.08, (CAB_FRONT_Z + CAB_BACK_Z) / 2)
   root.add(rail)
 }
 
@@ -275,12 +318,11 @@ function rebuildNet(rimR: number) {
 }
 rebuildNet(0.22)
 
-// Support pole + arm (short arcade mount)
 const pole = new THREE.Mesh(
-  new THREE.CylinderGeometry(0.05, 0.065, 1.85, 12),
+  new THREE.CylinderGeometry(0.05, 0.065, 1.55, 12),
   new THREE.MeshStandardMaterial({ color: 0x9aa3b2, metalness: 0.55, roughness: 0.38 }),
 )
-pole.position.set(0, 0.92, HOOP_HOME.z + 0.42)
+pole.position.set(0, 0.85, HOOP_HOME.z + 0.42)
 pole.castShadow = true
 root.add(pole)
 
@@ -323,56 +365,97 @@ root.add(trailLine)
 const world = new RAPIER.World({ x: 0, y: GRAVITY, z: 0 })
 const eventQueue = new RAPIER.EventQueue(true)
 
-const floorBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, -0.05, -0.55))
-world.createCollider(
-  RAPIER.ColliderDesc.cuboid(1.2, 0.05, 2.1)
-    .setRestitution(0.3)
-    .setFriction(0.85)
-    .setCollisionGroups((COL_WORLD << 16) | COL_BALL),
-  floorBody,
-)
-
-// Ramp collider (approx)
-const rampBody = world.createRigidBody(
-  RAPIER.RigidBodyDesc.fixed()
-    .setTranslation(0, 0.08, -0.85)
-    .setRotation({ x: Math.sin(-0.04), y: 0, z: 0, w: Math.cos(-0.04) }),
-)
-world.createCollider(
-  RAPIER.ColliderDesc.cuboid(1.05, 0.03, 1.3)
-    .setRestitution(0.25)
-    .setFriction(0.7)
-    .setCollisionGroups((COL_WORLD << 16) | COL_BALL),
-  rampBody,
-)
-
-// Trough shelf (balls rest here before launch)
-const troughBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, 0.72, 1.05))
-world.createCollider(
-  RAPIER.ColliderDesc.cuboid(0.8, 0.06, 0.28)
-    .setRestitution(0.15)
-    .setFriction(0.9)
-    .setCollisionGroups((COL_WORLD << 16) | COL_BALL),
-  troughBody,
-)
-
-for (const x of [-1.15, 1.15]) {
-  const b = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(x, 0.95, -0.4))
+function addFixedCuboid(
+  tx: number,
+  ty: number,
+  tz: number,
+  hx: number,
+  hy: number,
+  hz: number,
+  opts: { restitution?: number; friction?: number; rotX?: number } = {},
+) {
+  const desc = RAPIER.RigidBodyDesc.fixed().setTranslation(tx, ty, tz)
+  if (opts.rotX) {
+    const half = opts.rotX / 2
+    desc.setRotation({ x: Math.sin(half), y: 0, z: 0, w: Math.cos(half) })
+  }
+  const body = world.createRigidBody(desc)
   world.createCollider(
-    RAPIER.ColliderDesc.cuboid(0.05, 0.95, 1.9)
-      .setRestitution(0.45)
-      .setFriction(0.3)
+    RAPIER.ColliderDesc.cuboid(hx, hy, hz)
+      .setRestitution(opts.restitution ?? 0.35)
+      .setFriction(opts.friction ?? 0.6)
       .setCollisionGroups((COL_WORLD << 16) | COL_BALL),
-    b,
+    body,
+  )
+  return body
+}
+
+/** Quaternion half-angle for Rapier from full rotation about X. */
+function quatX(fullRad: number) {
+  const half = fullRad / 2
+  return { x: Math.sin(half), y: 0, z: 0, w: Math.cos(half) }
+}
+
+// Return ramp collider (slope toward front / +Z)
+{
+  const rampBody = world.createRigidBody(
+    RAPIER.RigidBodyDesc.fixed().setTranslation(0, RAMP_Y, RAMP_Z).setRotation(quatX(RAMP_ANGLE)),
+  )
+  world.createCollider(
+    RAPIER.ColliderDesc.cuboid(CAB_HALF_W - 0.08, 0.025, RAMP_LEN / 2)
+      .setRestitution(0.22)
+      .setFriction(0.55)
+      .setCollisionGroups((COL_WORLD << 16) | COL_BALL),
+    rampBody,
   )
 }
-const backWall = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, 1.2, -2.55))
-world.createCollider(
-  RAPIER.ColliderDesc.cuboid(1.15, 1.2, 0.05)
-    .setRestitution(0.5)
-    .setCollisionGroups((COL_WORLD << 16) | COL_BALL),
-  backWall,
-)
+
+// Trough shelf
+addFixedCuboid(0, 0.58, 1.05, 0.85, 0.05, 0.25, { restitution: 0.12, friction: 0.95 })
+// Front lip (stops balls rolling out of cabinet toward camera)
+addFixedCuboid(0, 0.72, 1.28, 0.86, 0.1, 0.035, { restitution: 0.2, friction: 0.8 })
+// Trough side lips
+addFixedCuboid(-0.82, 0.72, 1.05, 0.03, 0.1, 0.24, { restitution: 0.2, friction: 0.7 })
+addFixedCuboid(0.82, 0.72, 1.05, 0.03, 0.1, 0.24, { restitution: 0.2, friction: 0.7 })
+// Ramp → trough transition step (gentle catch)
+addFixedCuboid(0, 0.42, 0.72, 0.95, 0.04, 0.18, { restitution: 0.15, friction: 0.7, rotX: 0.2 })
+
+// Side walls — full height enclosure
+for (const x of [-CAB_HALF_W, CAB_HALF_W]) {
+  addFixedCuboid(
+    x,
+    CAB_CEIL_Y / 2,
+    (CAB_FRONT_Z + CAB_BACK_Z) / 2,
+    0.05,
+    CAB_CEIL_Y / 2 + 0.05,
+    (CAB_FRONT_Z - CAB_BACK_Z) / 2 + 0.05,
+    { restitution: 0.5, friction: 0.25 },
+  )
+}
+
+// Back wall
+addFixedCuboid(0, CAB_CEIL_Y / 2, CAB_BACK_Z, CAB_HALF_W + 0.05, CAB_CEIL_Y / 2 + 0.05, 0.05, {
+  restitution: 0.55,
+  friction: 0.3,
+})
+
+// Ceiling — balls cannot fly out the top
+addFixedCuboid(0, CAB_CEIL_Y, (CAB_FRONT_Z + CAB_BACK_Z) / 2, CAB_HALF_W, 0.04, (CAB_FRONT_Z - CAB_BACK_Z) / 2, {
+  restitution: 0.4,
+  friction: 0.2,
+})
+
+// Full front glass collider — seals cabinet; shots go -Z from inside so no aperture needed
+addFixedCuboid(0, (CAB_CEIL_Y + 0.72) / 2, CAB_FRONT_Z, CAB_HALF_W - 0.02, (CAB_CEIL_Y - 0.72) / 2, 0.03, {
+  restitution: 0.4,
+  friction: 0.2,
+})
+
+// Front lower barrier under trough (cabinet face)
+addFixedCuboid(0, 0.28, CAB_FRONT_Z - 0.05, CAB_HALF_W, 0.3, 0.04, { restitution: 0.3, friction: 0.5 })
+
+// Safety floor under everything (last resort)
+addFixedCuboid(0, CAB_FLOOR_Y - 0.05, -0.6, CAB_HALF_W + 0.1, 0.05, 2.1, { restitution: 0.2, friction: 0.9 })
 
 const hoopBody = world.createRigidBody(
   RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(HOOP_HOME.x, HOOP_HOME.y, HOOP_HOME.z),
@@ -470,31 +553,37 @@ type BallEntity = {
   mesh: THREE.Mesh
   body: RAPIER.RigidBody
   collider: RAPIER.Collider
+  /** Currently the held/flickable ball on the shoot spot. */
+  ready: boolean
+  /** Was launched and has not yet settled back in the trough. */
   inFlight: boolean
   scored: boolean
   touchedRim: boolean
+  /** Already counted a miss for this flight. */
+  missCounted: boolean
   spawnAt: number
-  /** Ready ball on trough (not yet flicked). */
-  ready: boolean
+  /** Cooldown before this ball can score again after a make. */
+  scoreLockUntil: number
 }
 
 const balls: BallEntity[] = []
 const ballByCollider = new Map<number, BallEntity>()
 
-function createBallEntity(ready: boolean): BallEntity {
+function createBallEntity(x: number, y: number, z: number): BallEntity {
   const mesh = makeBallMesh()
   root.add(mesh)
   const body = world.createRigidBody(
     RAPIER.RigidBodyDesc.dynamic()
-      .setTranslation(SHOOT_POS.x, SHOOT_POS.y, SHOOT_POS.z)
-      .setLinearDamping(0.1)
-      .setAngularDamping(0.22)
-      .setCcdEnabled(true),
+      .setTranslation(x, y, z)
+      .setLinearDamping(0.12)
+      .setAngularDamping(0.28)
+      .setCcdEnabled(true)
+      .setCanSleep(true),
   )
   const collider = world.createCollider(
     RAPIER.ColliderDesc.ball(BALL_R)
-      .setRestitution(0.7)
-      .setFriction(0.5)
+      .setRestitution(0.68)
+      .setFriction(0.55)
       .setDensity(1.05)
       .setCollisionGroups((COL_BALL << 16) | (COL_WORLD | COL_RIM | COL_BOARD | COL_SENSOR | COL_BALL))
       .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS),
@@ -504,21 +593,17 @@ function createBallEntity(ready: boolean): BallEntity {
     mesh,
     body,
     collider,
+    ready: false,
     inFlight: false,
     scored: false,
     touchedRim: false,
+    missCounted: false,
     spawnAt: performance.now(),
-    ready,
+    scoreLockUntil: 0,
   }
   balls.push(ent)
   ballByCollider.set(collider.handle, ent)
-  if (ready) {
-    body.setLinvel({ x: 0, y: 0, z: 0 }, true)
-    body.setAngvel({ x: 0, y: 0, z: 0 }, true)
-    body.sleep()
-    mesh.position.copy(SHOOT_POS)
-    mesh.quaternion.identity()
-  }
+  mesh.position.set(x, y, z)
   return ent
 }
 
@@ -527,21 +612,85 @@ function destroyBall(ent: BallEntity) {
   world.removeCollider(ent.collider, true)
   world.removeRigidBody(ent.body)
   root.remove(ent.mesh)
-  // Shared geo/mat — don't dispose
   const idx = balls.indexOf(ent)
   if (idx >= 0) balls.splice(idx, 1)
 }
 
-function getReadyBall(): BallEntity | null {
-  return balls.find((b) => b.ready && !b.inFlight) ?? null
-}
-
-function ensureReadyBall() {
-  if (!getReadyBall()) createBallEntity(true)
-}
-
 function clearAllBalls() {
   while (balls.length) destroyBall(balls[0]!)
+}
+
+/** Spawn the full arcade pool: one ready on trough, rest on ramp rolling forward. */
+function spawnBallPool() {
+  clearAllBalls()
+  // Ready ball on shoot spot
+  const ready = createBallEntity(SHOOT_POS.x, SHOOT_POS.y, SHOOT_POS.z)
+  ready.ready = true
+  ready.body.setLinvel({ x: 0, y: 0, z: 0 }, true)
+  ready.body.setAngvel({ x: 0, y: 0, z: 0 }, true)
+  ready.body.sleep()
+
+  // Remaining balls staggered on the return ramp (will roll toward trough)
+  const rest = BALL_COUNT - 1
+  for (let i = 0; i < rest; i++) {
+    const t = (i + 0.5) / rest
+    // Place along ramp surface in world space
+    const localZ = -RAMP_LEN / 2 + 0.35 + t * (RAMP_LEN - 0.9)
+    const worldZ = RAMP_Z + localZ * Math.cos(RAMP_ANGLE)
+    const worldY = RAMP_Y - localZ * Math.sin(RAMP_ANGLE) + BALL_R + 0.03
+    const x = ((i % 3) - 1) * 0.28 + (Math.random() - 0.5) * 0.06
+    const ent = createBallEntity(x, worldY, worldZ)
+    ent.inFlight = false
+    // Nudge slightly forward so they settle into trough
+    ent.body.setLinvel({ x: 0, y: 0, z: 0.15 + Math.random() * 0.1 }, true)
+  }
+}
+
+function getReadyBall(): BallEntity | null {
+  return balls.find((b) => b.ready) ?? null
+}
+
+function isInTroughZone(p: { x: number; y: number; z: number }) {
+  return p.z > 0.78 && p.z < 1.32 && p.y < 1.05 && Math.abs(p.x) < 0.9
+}
+
+function speedOf(ent: BallEntity) {
+  const v = ent.body.linvel()
+  return Math.hypot(v.x, v.y, v.z)
+}
+
+/**
+ * Promote a settled trough ball to ready when the shoot spot is empty.
+ * Snaps it to SHOOT_POS so the player always has a flickable ball.
+ */
+function tryPromoteReadyBall() {
+  if (getReadyBall()) return
+  // Prefer slowest ball already in trough
+  let best: BallEntity | null = null
+  let bestScore = Infinity
+  for (const ent of balls) {
+    if (ent.ready || ent.inFlight) continue
+    const p = ent.body.translation()
+    if (!isInTroughZone(p)) continue
+    const spd = speedOf(ent)
+    if (spd > 0.85) continue
+    const score = spd * 2 + Math.abs(p.x) * 0.5 + Math.abs(p.z - SHOOT_POS.z)
+    if (score < bestScore) {
+      bestScore = score
+      best = ent
+    }
+  }
+  if (!best) return
+  best.ready = true
+  best.inFlight = false
+  best.scored = false
+  best.touchedRim = false
+  best.missCounted = false
+  best.body.wakeUp()
+  best.body.setTranslation({ x: SHOOT_POS.x, y: SHOOT_POS.y, z: SHOOT_POS.z }, true)
+  best.body.setLinvel({ x: 0, y: 0, z: 0 }, true)
+  best.body.setAngvel({ x: 0, y: 0, z: 0 }, true)
+  best.body.sleep()
 }
 
 function applyHoopPose(tSec: number) {
@@ -558,15 +707,10 @@ function launchBall(dx: number, dy: number, speedPx: number) {
   if (state.phase !== 'playing') return
   let ready = getReadyBall()
   if (!ready) {
-    ready = createBallEntity(true)
+    tryPromoteReadyBall()
+    ready = getReadyBall()
   }
-
-  // Cap in-flight balls
-  const flying = balls.filter((b) => b.inFlight && !b.ready).length
-  if (flying >= MAX_FLIGHT_BALLS) {
-    const oldest = balls.find((b) => b.inFlight && !b.ready)
-    if (oldest) destroyBall(oldest)
-  }
+  if (!ready) return // no ball available yet — wait for return
 
   const speed = THREE.MathUtils.clamp(speedPx, MIN_FLICK, MAX_FLICK)
   const power = (speed - MIN_FLICK) / (MAX_FLICK - MIN_FLICK)
@@ -582,7 +726,9 @@ function launchBall(dx: number, dy: number, speedPx: number) {
   ready.inFlight = true
   ready.scored = false
   ready.touchedRim = false
+  ready.missCounted = false
   ready.spawnAt = performance.now()
+  ready.scoreLockUntil = 0
 
   ready.body.wakeUp()
   ready.body.setTranslation({ x: SHOOT_POS.x, y: SHOOT_POS.y, z: SHOOT_POS.z }, true)
@@ -594,8 +740,8 @@ function launchBall(dx: number, dy: number, speedPx: number) {
     true,
   )
 
-  // Immediately put next ball on the trough
-  ensureReadyBall()
+  // Pull next ball onto the trough ASAP if one is already waiting
+  tryPromoteReadyBall()
 
   state.banner = ''
   state.bannerKind = ''
@@ -604,7 +750,9 @@ function launchBall(dx: number, dy: number, speedPx: number) {
 
 function registerMake(ent: BallEntity, swish: boolean) {
   if (ent.scored) return
+  if (performance.now() < ent.scoreLockUntil) return
   ent.scored = true
+  ent.scoreLockUntil = performance.now() + 1800
   state.streak += 1
   let pts = swish ? SCORE.swish : SCORE.make
   if (state.streak >= SCORE.streakBonusFrom) pts += SCORE.streakBonusPoints
@@ -614,21 +762,16 @@ function registerMake(ent: BallEntity, swish: boolean) {
   const extra = state.streak > 1 ? ` · streak ${state.streak}` : ''
   flashBanner(label + extra, 'make')
   syncHud()
-  // Remove scored ball shortly after it drops through
-  window.setTimeout(() => {
-    if (balls.includes(ent)) destroyBall(ent)
-  }, 700)
+  // Ball keeps falling through net → ramp → trough (no destroy)
   if (state.stageScore >= currentStage().goal) onStageClear()
 }
 
-function registerMiss(ent: BallEntity, flash = true) {
-  if (ent.scored) return
-  if (flash) {
-    state.streak = 0
-    flashBanner('Miss', 'miss', 700)
-    syncHud()
-  }
-  if (balls.includes(ent)) destroyBall(ent)
+function registerMiss(ent: BallEntity) {
+  if (ent.scored || ent.missCounted) return
+  ent.missCounted = true
+  state.streak = 0
+  flashBanner('Miss', 'miss', 700)
+  syncHud()
 }
 
 function onStageClear() {
@@ -681,8 +824,7 @@ function startStage(index: number, keepTotal: boolean) {
   state.bannerKind = ''
   if (!keepTotal) state.totalScore = 0
   rebuildHoopColliders(STAGES[index]!.rimRadius)
-  clearAllBalls()
-  ensureReadyBall()
+  spawnBallPool()
   hideOverlay()
   syncHud()
 }
@@ -750,7 +892,6 @@ addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight
   camera.updateProjectionMatrix()
   renderer.setSize(innerWidth, innerHeight)
-  // Keep fixed arcade POV
   camera.position.copy(CAM_POS)
   camera.lookAt(CAM_LOOK)
 })
@@ -771,41 +912,70 @@ function processEvents() {
   })
 }
 
-function checkBallsFallback() {
+/** Containment + return-to-trough + miss detection. Balls are never destroyed in play. */
+function updateBallLifecycle(now: number) {
   if (state.phase !== 'playing' && state.phase !== 'cleared' && state.phase !== 'failed') return
-  const now = performance.now()
   const rimR = currentStage().rimRadius
   const hx = hoopGroup.position.x
   const hy = hoopGroup.position.y
   const hz = hoopGroup.position.z - 0.16
 
-  // Copy list — we may destroy while iterating
-  for (const ent of [...balls]) {
-    if (ent.ready || !ent.inFlight) continue
+  for (const ent of balls) {
+    if (ent.ready) continue
     const p = ent.body.translation()
     const v = ent.body.linvel()
     const age = now - ent.spawnAt
 
-    if (!ent.scored && age > 180) {
+    // Soft containment: if somehow outside, push back in
+    if (Math.abs(p.x) > CAB_HALF_W + 0.15 || p.z < CAB_BACK_Z - 0.2 || p.z > CAB_FRONT_Z + 0.35 || p.y > CAB_CEIL_Y + 0.3 || p.y < -0.5) {
+      ent.body.setTranslation(
+        {
+          x: THREE.MathUtils.clamp(p.x, -CAB_HALF_W + BALL_R, CAB_HALF_W - BALL_R),
+          y: THREE.MathUtils.clamp(p.y, BALL_R + 0.05, CAB_CEIL_Y - BALL_R - 0.05),
+          z: THREE.MathUtils.clamp(p.z, CAB_BACK_Z + BALL_R + 0.05, CAB_FRONT_Z - BALL_R - 0.05),
+        },
+        true,
+      )
+      ent.body.setLinvel({ x: v.x * 0.2, y: Math.min(v.y, 0), z: Math.abs(v.z) * 0.3 }, true)
+    }
+
+    // Sensor fallback for makes
+    if (ent.inFlight && !ent.scored && age > 180) {
       const radial = Math.hypot(p.x - hx, p.z - hz)
       if (v.y < 0 && p.y < hy - 0.02 && p.y > hy - 0.32 && radial < rimR * 0.75) {
         registerMake(ent, !ent.touchedRim)
-        continue
       }
     }
 
-    if (ent.scored) continue
-    if (age < 600) continue
-    const slow = Math.hypot(v.x, v.y, v.z) < 0.3
-    const onFloor = p.y < BALL_R + 0.12
-    const out = p.z < -3.2 || p.z > 2.2 || Math.abs(p.x) > 1.5 || p.y < -0.4
-    if ((slow && onFloor) || out || age > BALL_TTL_MS) {
-      registerMiss(ent, age > 800 && !out ? true : age > 900)
+    // Settled back in trough → no longer in flight; eligible for ready promotion
+    if (ent.inFlight && age > 700) {
+      const spd = Math.hypot(v.x, v.y, v.z)
+      if (isInTroughZone(p) && spd < 0.55 && p.y < 0.95) {
+        if (!ent.scored && !ent.missCounted && age > 900) registerMiss(ent)
+        ent.inFlight = false
+        ent.scored = false
+        ent.touchedRim = false
+      } else if (!ent.scored && !ent.missCounted && age > 900 && spd < 0.35 && p.y < 0.55 && p.z < 0.7) {
+        // Settled on ramp without scoring
+        registerMiss(ent)
+        ent.inFlight = false
+      }
+    }
+
+    // Clear score lock once ball has left the hoop area
+    if (ent.scored && age > 400) {
+      const radial = Math.hypot(p.x - hx, p.z - hz)
+      if (p.y < hy - 0.4 || radial > rimR * 1.5) {
+        // keep scored until trough; scoreLockUntil already set
+      }
     }
   }
+
+  tryPromoteReadyBall()
 }
 
-ensureReadyBall()
+// Title screen: show pool idle
+spawnBallPool()
 
 let last = performance.now()
 let accum = 0
@@ -819,7 +989,7 @@ function frame(now: number) {
     state.timeLeft -= dt
     if (state.timeLeft <= 0) {
       state.timeLeft = 0
-      const anyRecent = balls.some((b) => b.inFlight && now - b.spawnAt < 1800)
+      const anyRecent = balls.some((b) => b.inFlight && now - b.spawnAt < 2000)
       if (!anyRecent) onStageFail()
     }
     syncHud()
@@ -834,11 +1004,11 @@ function frame(now: number) {
     }
   }
 
-  if (state.phase === 'playing' || state.phase === 'cleared' || state.phase === 'failed') {
-    applyHoopPose(now / 1000)
+  if (state.phase === 'playing' || state.phase === 'cleared' || state.phase === 'failed' || state.phase === 'title') {
+    if (state.phase !== 'title') applyHoopPose(now / 1000)
   }
 
-  // Keep ready ball glued to trough
+  // Keep ready ball glued to trough shoot spot
   const ready = getReadyBall()
   if (ready) {
     ready.body.setTranslation({ x: SHOOT_POS.x, y: SHOOT_POS.y, z: SHOOT_POS.z }, true)
@@ -853,7 +1023,7 @@ function frame(now: number) {
     processEvents()
     accum -= FIXED
   }
-  checkBallsFallback()
+  updateBallLifecycle(now)
 
   for (const ent of balls) {
     const bp = ent.body.translation()
@@ -867,7 +1037,6 @@ function frame(now: number) {
     }
   }
 
-  // Fixed camera — never follow ball or orbit
   camera.position.copy(CAM_POS)
   camera.lookAt(CAM_LOOK)
 
@@ -879,7 +1048,7 @@ syncHud()
 showOverlay({
   eyebrow: 'Arcade',
   title: 'Basketball Machine',
-  body: 'Flick on the canvas to launch balls. Keep firing — multiple balls in the air. Clear each stage before time runs out.',
+  body: `Flick to launch. ${BALL_COUNT} balls bounce off each other and roll back down the ramp — they never leave the cabinet. Clear each stage before time runs out.`,
   button: 'Start',
   rules: true,
 })
