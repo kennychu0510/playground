@@ -132,20 +132,31 @@
   function resizeCanvas() {
     const wrap = els.stageWrap || $("stage-wrap");
     if (!wrap || !els.canvas) return;
+    // Canvas is position:absolute inset inside the stage — measure the box, not the canvas.
     const rect = wrap.getBoundingClientRect();
-    const cssW = Math.max(280, Math.floor(rect.width) || Math.floor(window.innerWidth));
-    // Leave room for graph strip when running; otherwise fill stage
-    let cssH = Math.max(200, Math.floor(rect.height) || Math.floor(window.innerHeight * 0.55));
-    if ((state === S.RUN || state === S.RESULT) && els.graphWrap && els.graphWrap.classList.contains("active")) {
-      // graph overlays bottom; canvas still fills wrap
+    const pad = 16; // matches CSS inset 8px * 2
+    let cssW = Math.floor(rect.width - pad);
+    let cssH = Math.floor(rect.height - pad);
+    // Fallbacks for first paint / iOS when flex height is still settling
+    if (!(cssW > 40)) cssW = Math.floor(Math.min(window.innerWidth, 960) - 24);
+    if (!(cssH > 80)) {
+      const dock = els.editDock && els.editDock.classList.contains("active") ? 0.38 : 0.12;
+      cssH = Math.floor(window.innerHeight * (1 - dock) - 72);
     }
+    cssW = Math.max(200, cssW);
+    cssH = Math.max(160, cssH);
     W = cssW;
     H = cssH;
-    els.canvas.style.width = cssW + "px";
-    els.canvas.style.height = cssH + "px";
+    // Do not set inline width/height — CSS absolute inset owns layout.
+    els.canvas.style.width = "";
+    els.canvas.style.height = "";
     const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-    els.canvas.width = Math.round(W * dpr);
-    els.canvas.height = Math.round(H * dpr);
+    const bw = Math.round(W * dpr);
+    const bh = Math.round(H * dpr);
+    if (els.canvas.width !== bw || els.canvas.height !== bh) {
+      els.canvas.width = bw;
+      els.canvas.height = bh;
+    }
     els.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     draw();
   }
