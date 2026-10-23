@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>Dragonboat Lab — paddle stroke sandbox</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="top">
+      <div class="title-block">
+        <a class="back" href="../../">← Playground</a>
+        <h1>Dragonboat Lab</h1>
+      </div>
+      <span class="badge">100 m · standing start</span>
+    </header>
+
+    <div id="stage-wrap">
+      <canvas id="scene" width="540" height="640" aria-label="Side-view dragonboat simulation"></canvas>
+
+      <div id="hud" aria-live="polite">
+        <div class="row">
+          <span><span class="k">Dist </span><span class="v" id="hud-dist">0.0 m</span></span>
+          <span><span class="k">Speed </span><span class="v" id="hud-speed">0.00 m/s</span></span>
+          <span><span class="k">Time </span><span class="v" id="hud-time">0.00 s</span></span>
+        </div>
+      </div>
+
+      <!-- INTRO -->
+      <div id="panel-intro" class="panel active">
+        <h2>Paddle Lab</h2>
+        <p class="lead">
+          Tune stroke length, insert depth, angle, and rate — then race 100&nbsp;m
+          and see how technique changes boat speed. Toy physics, real intuition.
+        </p>
+        <div class="card">
+          <p style="font-size:0.85rem;line-height:1.45;color:var(--muted)">
+            Inspired by the Swim Finder pattern on zounoashi.com: edit → run → result,
+            all in vanilla HTML + canvas. No build step.
+          </p>
+        </div>
+        <button type="button" class="btn" id="btn-start">Start tuning</button>
+        <p class="hint">Portrait-friendly · works offline once loaded</p>
+      </div>
+
+      <!-- RESULT -->
+      <div id="panel-result" class="panel">
+        <h2>Result</h2>
+        <div class="stat-grid">
+          <div class="stat">
+            <div class="label">Time · 100 m</div>
+            <div><span class="num" id="res-time">—</span><span class="unit">s</span></div>
+          </div>
+          <div class="stat">
+            <div class="label">Average speed</div>
+            <div><span class="num" id="res-avg">—</span><span class="unit">m/s</span></div>
+          </div>
+          <div class="stat">
+            <div class="label">Peak speed</div>
+            <div><span class="num" id="res-peak">—</span><span class="unit">m/s</span></div>
+          </div>
+          <div class="stat">
+            <div class="label">Distance</div>
+            <div><span class="num">100</span><span class="unit">m</span></div>
+          </div>
+        </div>
+        <div class="note" id="res-note"></div>
+        <button type="button" class="btn" id="btn-again">Tweak stroke</button>
+        <button type="button" class="btn secondary" id="btn-rerun">Race again</button>
+      </div>
+    </div>
+
+    <!-- EDIT dock -->
+    <div id="edit-dock">
+      <div class="slider-row">
+        <label><span class="name">Stroke length</span> — catch-to-exit through water</label>
+        <span class="val" id="val-length">1.35 m</span>
+        <input id="sl-length" type="range" min="0.6" max="2.0" step="0.05" value="1.35" />
+      </div>
+      <div class="slider-row">
+        <label><span class="name">Insert depth</span> — how deep the blade goes</label>
+        <span class="val" id="val-depth">32 cm</span>
+        <input id="sl-depth" type="range" min="0.08" max="0.65" step="0.01" value="0.32" />
+      </div>
+      <div class="slider-row">
+        <label><span class="name">Insert angle</span> — from vertical at catch (0° = vertical)</label>
+        <span class="val" id="val-angle">12°</span>
+        <input id="sl-angle" type="range" min="-20" max="55" step="1" value="12" />
+      </div>
+      <div class="slider-row">
+        <label><span class="name">Stroke rate</span></label>
+        <span class="val" id="val-spm">72 spm</span>
+        <input id="sl-spm" type="range" min="40" max="90" step="1" value="72" />
+      </div>
+      <div class="slider-row">
+        <label><span class="name">Effort</span> — how hard you pull</label>
+        <span class="val" id="val-effort">100%</span>
+        <input id="sl-effort" type="range" min="0.6" max="1.2" step="0.05" value="1.0" />
+      </div>
+      <p class="hint" id="est-time">est. —</p>
+      <div id="edit-actions">
+        <button type="button" class="btn secondary" id="btn-reset-params">Defaults</button>
+        <button type="button" class="btn" id="btn-paddle">Paddle!</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="physics.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
