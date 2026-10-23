@@ -1,23 +1,37 @@
 /**
- * Dragonboat Lab — toy 1D propulsion model
- * =========================================
- * NOT CFD. Goal: slider extremes clearly change 100 m time, with formulas
- * an iOS engineer can read and retune.
+ * Dragonboat Lab v2 — research-backed toy propulsion model
+ * ========================================================
+ * NOT CFD. Goal: coach-aligned stroke phases + multi-paddler sync so
+ * slider extremes clearly change 100 m time. Formulas an engineer can retune.
  *
- * Assumptions
- * -----------
- * 1. One "crew-equivalent" paddle: sliders describe the stroke everyone
- *    mirrors. Thrust is scaled as if N effective blades pull together.
- * 2. Standing start on flat water. Race distance is fixed (100 m).
- * 3. Water phase applies forward thrust; recovery applies hull drag only.
- * 4. Blade force uses a quadratic water-resistance toy:
- *      F_blade ∝ ρ · A_eff · v_rel² · η_angle
- *    Reaction on the boat is +F_blade (action–reaction).
- * 5. Hull drag is quadratic: F_drag = −k_d · v · |v|.
- * 6. Insert angle η peaks slightly off vertical (dragonboat catch is
- *    often ~5–15° from vertical). Flat or wildly past-vertical waste force.
- * 7. Depth adds area with diminishing returns; very deep adds recovery
- *    penalty via a slightly lower water-phase fraction (harder exit).
+ * Coaching sources (toy encoding, not a paper replica)
+ * ----------------------------------------------------
+ * - London Dragon Boat Club / common UK coaching: bury the blade fully
+ *   before hard pull; exit by the hip; avoid dragging a negative blade.
+ * - Oyster Point Dragons: catch near ~45° forward of vertical, then pull
+ *   toward vertical; exit around mid-thigh.
+ * - Dragon Boat Net / recreational biomechanics write-ups: force peaks
+ *   when the blade is immersed and near vertical during the drive.
+ * - Sync literature / coaching lore: simultaneous force → clean glide;
+ *   "caterpillaring" (out-of-phase paddlers) chops the force curve and
+ *   hurts average speed even when each stroke looks fine in isolation.
+ * - ISBS-style rate findings (toy): higher SPM shortens the water phase
+ *   relative to the cycle (higher drive:total urgency, shorter reach).
+ *
+ * Stroke phases (fraction of cycle, rate-dependent)
+ * -------------------------------------------------
+ *   reach → catch → pull/drive → exit → recovery
+ * Insert angle UI is 0–45° only:
+ *   0°  = paddle perpendicular to the water (vertical)
+ *   45° = positive forward catch (blade tip toward the bow)
+ * Negative catch angles are not offered. A late exit that would push the
+ * blade past vertical into a "negative" orientation applies a drag penalty.
+ *
+ * Multi-paddler (2D side view only)
+ * ---------------------------------
+ * Crew 2–20. Mass scales with crew. Instantaneous thrust = sum over
+ * paddlers. Sync quality spreads phase offsets (jitter). We do NOT model
+ * left vs right sides separately — one unison row in side view.
  *
  * Integration: semi-implicit Euler, fixed dt (usually 1/60 s).
  */
@@ -27,75 +41,83 @@
 
   const RACE_DISTANCE_M = 100;
 
-  /** Tunable world constants — tweak these if results feel flat. */
+  /** Tunable world constants — tweak if results feel flat or extreme. */
   const CFG = {
-    // Effective mass: boat + crew (toy). Lower = snappier acceleration.
-    massKg: 900,
+    // Hull + empty boat mass; paddlers add massPaddlerKg * crewSize
+    boatMassKg: 250,
+    massPaddlerKg: 75,
 
-    // Hull quadratic drag coefficient (N / (m/s)²). Higher = harder top speed.
-    hullDragK: 18,
+    // Hull quadratic drag (N / (m/s)²). Scales gently with crew (wider load).
+    hullDragKBase: 7.5,
+    hullDragKPerPaddler: 0.18,
 
-    // Water density (kg/m³)
     rho: 1000,
-
-    // Blade "Cd · shape" factor (dimensionless toy)
-    bladeCd: 1.15,
-
-    // Assumed blade width in meters (fixed paddle face)
+    bladeCd: 1.45,
     bladeWidthM: 0.18,
 
-    // How many effective blades (crew unison scale). 10 ≈ half a standard boat.
-    crewBlades: 10,
-
-    // Depth where area gain starts flattening (m)
+    // Depth soft-cap (m)
     depthScaleM: 0.28,
-
-    // Soft max useful depth (m) — beyond this, little extra thrust
     depthUsefulMaxM: 0.55,
 
-    // Angle efficiency Gaussian: peakDeg from vertical, widthDeg
-    anglePeakDeg: 10,
-    angleWidthDeg: 28,
+    // Catch-angle efficiency: peaks near a forward ~38° catch (coach 45°
+    // bury), still good near vertical drive (~10–20°). 0° is usable but
+    // not ideal as a catch angle; 45° is the upper UI bound.
+    anglePeakDeg: 38,
+    angleWidthDeg: 22,
+    // Floor so vertical catch still produces some thrust
+    angleEffFloor: 0.42,
 
-    // Baseline water-phase fraction of the stroke cycle (catch→exit)
-    waterFractionBase: 0.48,
+    // Late-exit / negative-blade drag factor (fraction of drive thrust
+    // applied as extra rearward drag when exit is late relative to length)
+    negativeBladeDragFrac: 0.22,
 
-    // Extra recovery cost when paddling very deep (reduces water fraction)
-    deepRecoveryPenalty: 0.08,
+    // Baseline phase fractions at 60 spm (sum = 1). Higher SPM compresses
+    // reach+recovery and slightly raises drive share (ISBS-ish toy).
+    phaseAt60: {
+      reach: 0.12,
+      catch: 0.10,
+      drive: 0.36,
+      exit: 0.10,
+      recovery: 0.32,
+    },
 
     // Slip: blade relative speed vs water ≈ pullSpeed − slip · boatSpeed
-    // (paddle isn't a perfect fixed point in the water)
-    slip: 0.55,
+    slip: 0.48,
+    vRelFloor: 0.12,
 
-    // Minimum relative speed used in thrust (avoids zero at start edge cases)
-    vRelFloor: 0.15,
+    // Sync: at 0% sync, max phase jitter as fraction of cycle
+    maxSyncJitterFrac: 0.95,
+    // Pace variance: at 100% variance slider, ±spmFrac of target SPM
+    // (exposed as paceVariance 0–1; default low)
+    maxPaceVarianceFrac: 0.12,
+
+    // Force shaping during drive: peaks near vertical portion of pull
+    drivePeakBias: 0.55,
   };
-
-  /**
-   * @typedef {Object} StrokeParams
-   * @property {number} strokeLengthM  catch-to-exit arc length through water
-   * @property {number} depthM         blade insert depth
-   * @property {number} angleDeg       insert angle from vertical (0 = vertical)
-   * @property {number} spm            strokes per minute
-   * @property {number} effort         0.5–1.2 multiplier on force (optional)
-   * @property {number} waterFraction  override water-phase ratio (optional)
-   */
 
   function clamp(x, a, b) {
     return Math.max(a, Math.min(b, x));
   }
 
-  /** η_angle ∈ (0, 1], peaks near anglePeakDeg from vertical. */
+  function lerp(a, b, t) {
+    return a + (b - a) * t;
+  }
+
+  /**
+   * η_angle ∈ (angleEffFloor, 1]. Peaks near anglePeakDeg (forward catch).
+   * UI clamps angle to [0, 45].
+   */
   function angleEfficiency(angleDeg) {
-    const d = angleDeg - CFG.anglePeakDeg;
+    const a = clamp(angleDeg, 0, 45);
+    const d = a - CFG.anglePeakDeg;
     const w = CFG.angleWidthDeg;
-    return Math.exp(-(d * d) / (2 * w * w));
+    const g = Math.exp(-(d * d) / (2 * w * w));
+    return clamp(CFG.angleEffFloor + (1 - CFG.angleEffFloor) * g, 0, 1);
   }
 
   /**
    * Effective submerged blade area (m²).
-   * A ≈ width · depth_eff, with depth_eff = depth · (1 − e^(−depth/scale))
-   * soft-capped so "burying" the blade stops helping.
+   * A ≈ width · depth_eff, depth_eff soft-capped so over-burying stops helping.
    */
   function effectiveArea(depthM) {
     const d = clamp(depthM, 0.02, 0.8);
@@ -105,98 +127,287 @@
   }
 
   /**
-   * Water-phase fraction: deep inserts take longer to exit → slightly
-   * less of the cycle is pure propulsion (recovery cost).
+   * Rate-dependent phase fractions. Higher SPM → shorter reach/recovery,
+   * slightly higher drive:total (busy cadence, less glide setup).
    */
-  function waterFraction(params) {
-    if (params.waterFraction != null) return clamp(params.waterFraction, 0.25, 0.7);
-    const deep = clamp((params.depthM - 0.25) / 0.4, 0, 1);
-    return clamp(
-      CFG.waterFractionBase - deep * CFG.deepRecoveryPenalty,
-      0.32,
-      0.58
-    );
+  function phaseFractions(spm) {
+    const s = clamp(spm, 30, 100);
+    // 0 at 40 spm, 1 at 90 spm
+    const urgency = clamp((s - 40) / 50, 0, 1);
+    const base = CFG.phaseAt60;
+    // Compress reach+recovery, give a bit to drive+catch
+    const reach = lerp(base.reach, 0.06, urgency);
+    const recovery = lerp(base.recovery, 0.22, urgency);
+    const catchP = lerp(base.catch, 0.12, urgency);
+    const drive = lerp(base.drive, 0.42, urgency);
+    const exit = 1 - (reach + catchP + drive + recovery);
+    return {
+      reach: reach,
+      catch: catchP,
+      drive: drive,
+      exit: Math.max(0.06, exit),
+      recovery: recovery,
+    };
   }
 
-  /** Kinematics derived from stroke length, rate, and water fraction. */
-  function strokeKinematics(params) {
-    const spm = clamp(params.spm, 20, 90);
-    const cycleT = 60 / spm; // seconds per stroke
-    const wf = waterFraction(params);
-    const waterT = wf * cycleT;
-    const recoveryT = cycleT - waterT;
-    const length = clamp(params.strokeLengthM, 0.4, 2.2);
-    // Mean blade pull speed through the water during the drive
-    const pullSpeed = length / Math.max(waterT, 1e-3);
-    return { spm, cycleT, wf, waterT, recoveryT, length, pullSpeed };
+  /** Water-phase = catch + drive + exit (blade immersed / propulsive window). */
+  function waterFractionFromPhases(ph) {
+    return ph.catch + ph.drive + ph.exit;
   }
 
   /**
-   * Instantaneous forward thrust (N) while the blade is in the water.
-   *
-   *   v_rel = max(pullSpeed − slip · v_boat, vRelFloor)
-   *   F     = crew · effort · (½ ρ Cd A) · v_rel² · η_angle
-   *
-   * (½ ρ Cd A is the usual dynamic-pressure · area form.)
+   * Late-exit penalty: very long stroke at high rate tends to drag the
+   * blade past the hip into a negative orientation → extra drag on exit.
+   * Returns 0..1 severity.
    */
-  function thrustNewtons(params, boatSpeed, kin) {
+  function negativeBladeSeverity(params, ph) {
+    // Ideal length shrinks a bit as SPM rises (can't hold a long stroke cleanly)
+    const idealLen = lerp(1.55, 1.05, clamp((params.spm - 40) / 50, 0, 1));
+    const over = clamp((params.strokeLengthM - idealLen) / 0.6, 0, 1);
+    // Shallow exit window relative to drive also worsens late exit feel
+    const exitTight = clamp(1 - ph.exit / 0.12, 0, 1);
+    return over * (0.55 + 0.45 * exitTight);
+  }
+
+  function crewMassKg(crewSize) {
+    const n = clamp(Math.round(crewSize), 2, 20);
+    return CFG.boatMassKg + CFG.massPaddlerKg * n;
+  }
+
+  function hullDragK(crewSize) {
+    const n = clamp(Math.round(crewSize), 2, 20);
+    return CFG.hullDragKBase + CFG.hullDragKPerPaddler * n;
+  }
+
+  /**
+   * @typedef {Object} StrokeParams
+   * @property {number} strokeLengthM
+   * @property {number} depthM
+   * @property {number} angleDeg   0–45 only
+   * @property {number} spm
+   * @property {number} effort     0.5–1.2
+   * @property {number} crewSize   2–20
+   * @property {number} syncPct    0–100 (100 = perfect unison)
+   * @property {number} paceVariance 0–1 optional SPM spread across crew
+   */
+
+  function normalizeParams(params) {
+    return {
+      strokeLengthM: clamp(params.strokeLengthM, 0.5, 2.2),
+      depthM: clamp(params.depthM, 0.05, 0.7),
+      angleDeg: clamp(params.angleDeg, 0, 45),
+      spm: clamp(params.spm, 30, 100),
+      effort: clamp(params.effort ?? 1, 0.5, 1.25),
+      crewSize: clamp(Math.round(params.crewSize ?? 20), 2, 20),
+      syncPct: clamp(params.syncPct ?? 85, 0, 100),
+      paceVariance: clamp(params.paceVariance ?? 0.15, 0, 1),
+    };
+  }
+
+  /** Deterministic paddler offset in [0,1) from index + sync. */
+  function paddlerPhaseOffset(i, crewSize, syncPct) {
+    const sync = clamp(syncPct, 0, 100) / 100;
+    const jitterAmp = (1 - sync) * CFG.maxSyncJitterFrac;
+    // Spread paddlers across the jitter band of the cycle. Stable hash so
+    // simulate() matches step() without RNG drift.
+    if (crewSize <= 1 || jitterAmp < 1e-6) return 0;
+    // Even spacing 0..jitterAmp, plus small irregularity
+    const even = (i / crewSize) * jitterAmp;
+    const wobble = (((i * 37 + 11) % 17) / 17) * jitterAmp * 0.08;
+    return (even + wobble) % 1;
+  }
+
+  /**
+   * Explicit sync efficiency — out-of-phase crews waste overlap that a
+   * pure impulse sum under-penalizes vs coaching reality (caterpillaring
+   * kills the shared surge / glide). Maps 0%→~0.58, 100%→1.0.
+   */
+  function syncEfficiency(syncPct) {
+    const s = clamp(syncPct, 0, 100) / 100;
+    return 0.58 + 0.42 * Math.pow(s, 0.9);
+  }
+
+  function paddlerSpm(params, i) {
+    const base = params.spm;
+    if (params.paceVariance <= 0) return base;
+    const amp = params.paceVariance * CFG.maxPaceVarianceFrac;
+    const wobble = ((i * 19 + 7) % 13) / 13 - 0.5; // -0.5..0.5
+    return clamp(base * (1 + wobble * 2 * amp), 30, 100);
+  }
+
+  /**
+   * Map phase time → stage + local 0..1 progress within that stage.
+   */
+  function phaseAt(u, ph) {
+    // u in [0,1) along cycle
+    let x = ((u % 1) + 1) % 1;
+    const edges = [
+      ["reach", ph.reach],
+      ["catch", ph.catch],
+      ["drive", ph.drive],
+      ["exit", ph.exit],
+      ["recovery", ph.recovery],
+    ];
+    for (let i = 0; i < edges.length; i++) {
+      const name = edges[i][0];
+      const len = edges[i][1];
+      if (x < len) return { name: name, local: len > 0 ? x / len : 0 };
+      x -= len;
+    }
+    return { name: "recovery", local: 1 };
+  }
+
+  /**
+   * Thrust (N) for one blade given unit cycle phase u ∈ [0,1) and that
+   * paddler's effective SPM (for pull speed / phase shape).
+   */
+  function thrustAtPhase(params, boatSpeed, u, spm) {
+    const ph = phaseFractions(spm);
+    const stage = phaseAt(u, ph);
     const A = effectiveArea(params.depthM);
     const eta = angleEfficiency(params.angleDeg);
-    const effort = clamp(params.effort ?? 1, 0.5, 1.25);
-    const vRel = Math.max(
-      kin.pullSpeed - CFG.slip * boatSpeed,
-      CFG.vRelFloor
-    );
+    const effort = params.effort;
+    const wf = waterFractionFromPhases(ph);
+    const waterT = wf * (60 / spm);
+    const pullSpeed = params.strokeLengthM / Math.max(waterT, 1e-3);
+    const vRel = Math.max(pullSpeed - CFG.slip * boatSpeed, CFG.vRelFloor);
     const dynamic = 0.5 * CFG.rho * CFG.bladeCd * A * vRel * vRel;
-    return CFG.crewBlades * effort * dynamic * eta;
+
+    // Only catch/drive/exit produce forward thrust. Drive peaks mid-pull
+    // (blade nearest vertical / buried) — coach: full bury before hard pull.
+    let shape = 0;
+    if (stage.name === "catch") {
+      // Building bury — partial thrust
+      shape = 0.35 + 0.45 * stage.local;
+    } else if (stage.name === "drive") {
+      // Peak near drivePeakBias through the drive
+      const peak = CFG.drivePeakBias;
+      const d = 1 - Math.abs(stage.local - peak) / Math.max(peak, 1 - peak);
+      shape = 0.55 + 0.45 * clamp(d, 0, 1);
+      // Angle toward vertical during drive boosts a bit (pull near vertical)
+      const verticalBonus = lerp(1.0, 1.08, 1 - params.angleDeg / 45);
+      shape *= verticalBonus;
+    } else if (stage.name === "exit") {
+      // Unweighting — taper; late/long stroke adds negative-blade drag later
+      shape = 0.4 * (1 - stage.local);
+    } else {
+      shape = 0;
+    }
+
+    let F = effort * dynamic * eta * shape;
+
+    // Negative-blade / late-exit drag during exit when severity > 0
+    if (stage.name === "exit") {
+      const sev = negativeBladeSeverity(params, ph);
+      if (sev > 0) {
+        F -= effort * dynamic * CFG.negativeBladeDragFrac * sev * stage.local;
+      }
+    }
+
+    return F;
   }
 
-  function hullDragNewtons(v) {
-    // −k · v · |v|  (always opposes motion)
-    return -CFG.hullDragK * v * Math.abs(v);
+  function hullDragNewtons(v, crewSize) {
+    const k = hullDragK(crewSize);
+    return -k * v * Math.abs(v);
   }
 
   /**
-   * Advance the boat by dt seconds.
-   * phaseTime is time into the current stroke cycle [0, cycleT).
+   * Kinematics summary for UI / ghost stroke (lead paddler / mean SPM).
    */
-  function step(state, params, dt) {
+  function strokeKinematics(rawParams) {
+    const params = normalizeParams(rawParams);
+    const ph = phaseFractions(params.spm);
+    const cycleT = 60 / params.spm;
+    const wf = waterFractionFromPhases(ph);
+    const waterT = wf * cycleT;
+    const recoveryT = cycleT - waterT;
+    const pullSpeed = params.strokeLengthM / Math.max(waterT, 1e-3);
+    return {
+      spm: params.spm,
+      cycleT: cycleT,
+      wf: wf,
+      waterT: waterT,
+      recoveryT: recoveryT,
+      length: params.strokeLengthM,
+      pullSpeed: pullSpeed,
+      phases: ph,
+      massKg: crewMassKg(params.crewSize),
+      hullDragK: hullDragK(params.crewSize),
+      negBlade: negativeBladeSeverity(params, ph),
+    };
+  }
+
+  /**
+   * Advance boat by dt. phaseTime is the lead stroke clock [0, ∞) mapped
+   * into each paddler's cycle via offsets + per-paddler SPM.
+   */
+  function step(state, rawParams, dt) {
+    const params = normalizeParams(rawParams);
     const kin = strokeKinematics(params);
-    let { x, v, t, phaseTime, peakV, impulseThrust, impulseDrag } = state;
+    let x = state.x;
+    let v = state.v;
+    let t = state.t;
+    let phaseTime = state.phaseTime + dt;
+    let peakV = state.peakV;
+    let impulseThrust = state.impulseThrust;
+    let impulseDrag = state.impulseDrag;
 
-    phaseTime = (phaseTime + dt) % kin.cycleT;
-    const inWater = phaseTime < kin.waterT;
-
+    const n = params.crewSize;
     let Fthrust = 0;
-    if (inWater) {
-      Fthrust = thrustNewtons(params, v, kin);
-    }
-    const Fdrag = hullDragNewtons(v);
-    const F = Fthrust + Fdrag;
-    const a = F / CFG.massKg;
+    let anyInWater = false;
 
-    // Semi-implicit Euler
+    for (let i = 0; i < n; i++) {
+      const spm_i = paddlerSpm(params, i);
+      const cycleT_i = 60 / spm_i;
+      const offset = paddlerPhaseOffset(i, n, params.syncPct);
+      // Lead clock in seconds → this paddler's unit phase
+      const u = (phaseTime / cycleT_i + offset) % 1;
+      const ph = phaseFractions(spm_i);
+      const stage = phaseAt(u, ph);
+      if (stage.name === "catch" || stage.name === "drive" || stage.name === "exit") {
+        anyInWater = true;
+      }
+      Fthrust += thrustAtPhase(params, v, u, spm_i);
+    }
+
+    // Sync tax: caterpillaring reduces useful net surge
+    Fthrust *= syncEfficiency(params.syncPct);
+
+    const Fdrag = hullDragNewtons(v, n);
+    // Slight extra wash drag when badly out of time
+    const sync = params.syncPct / 100;
+    const FdragAdj = Fdrag * (1 + 0.12 * (1 - sync));
+    const F = Fthrust + FdragAdj;
+    const mass = crewMassKg(n);
+    const a = F / mass;
+
     v = v + a * dt;
-    if (v < 0) v = 0; // no backward sailing in this toy
+    if (v < 0) v = 0;
     x = x + v * dt;
     t = t + dt;
     peakV = Math.max(peakV, v);
 
-    impulseThrust += Fthrust * dt;
-    impulseDrag += Math.abs(Fdrag) * dt;
+    impulseThrust += Math.max(0, Fthrust) * dt;
+    impulseDrag += Math.abs(FdragAdj) * dt;
+
+    // Sync quality proxy: ratio of net thrust to what perfect unison would do
+    // (updated lightly for coaching notes)
+    const syncMetric = params.syncPct / 100;
 
     return {
-      x,
-      v,
-      t,
-      phaseTime,
-      peakV,
-      impulseThrust,
-      impulseDrag,
-      inWater,
-      kin,
-      Fthrust,
-      Fdrag,
+      x: x,
+      v: v,
+      t: t,
+      phaseTime: phaseTime,
+      peakV: peakV,
+      impulseThrust: impulseThrust,
+      impulseDrag: impulseDrag,
+      inWater: anyInWater,
+      kin: kin,
+      Fthrust: Fthrust,
+      Fdrag: FdragAdj,
+      syncMetric: syncMetric,
       finished: x >= RACE_DISTANCE_M,
     };
   }
@@ -212,56 +423,90 @@
       impulseDrag: 0,
       inWater: false,
       finished: false,
+      syncMetric: 1,
     };
   }
 
-  /**
-   * Fast-forward simulation (no rendering) until finish or timeout.
-   * Useful for live "estimated time" while editing.
-   */
-  function simulate(params, opts) {
+  function simulate(rawParams, opts) {
+    const params = normalizeParams(rawParams);
     const dt = (opts && opts.dt) || 1 / 60;
     const maxT = (opts && opts.maxT) || 120;
     let s = initialState();
+    const samples = [];
+    const sampleEvery = (opts && opts.sampleEvery) || 0;
+    let nextSample = 0;
+
     while (!s.finished && s.t < maxT) {
       s = step(s, params, dt);
+      if (sampleEvery > 0 && s.t >= nextSample) {
+        samples.push({ t: s.t, v: s.v, x: s.x });
+        nextSample += sampleEvery;
+      }
     }
-    const avgV = s.t > 0 ? Math.min(s.x, RACE_DISTANCE_M) / s.t : 0;
+
+    const dist = Math.min(s.x, RACE_DISTANCE_M);
+    const avgV = s.t > 0 ? dist / s.t : 0;
     const thrustShare =
       s.impulseThrust + s.impulseDrag > 0
         ? s.impulseThrust / (s.impulseThrust + s.impulseDrag)
         : 0;
+
     return {
       time: s.t,
-      distance: Math.min(s.x, RACE_DISTANCE_M),
+      distance: dist,
       avgSpeed: avgV,
       peakSpeed: s.peakV,
       finished: s.finished,
-      thrustShare,
+      thrustShare: thrustShare,
       kin: strokeKinematics(params),
       angleEff: angleEfficiency(params.angleDeg),
       area: effectiveArea(params.depthM),
+      syncPct: params.syncPct,
+      crewSize: params.crewSize,
+      samples: samples,
     };
   }
 
-  /** Default “competent crew” slider values. */
   function defaultParams() {
     return {
       strokeLengthM: 1.35,
       depthM: 0.32,
-      angleDeg: 12,
+      angleDeg: 35,
       spm: 72,
       effort: 1.0,
+      crewSize: 20,
+      syncPct: 85,
+      paceVariance: 0.15,
     };
   }
 
-  /** One-line coaching note from a finished (or estimated) result. */
-  function coachingNote(params, result) {
+  function syncNote(params) {
+    if (params.syncPct >= 90) {
+      return "Crew sync is tight — force lands together and the boat gets clean glide between drives.";
+    }
+    if (params.syncPct >= 70) {
+      return "Sync is decent; a bit of caterpillaring is shaving peak force.";
+    }
+    if (params.syncPct >= 40) {
+      return "Noticeable caterpillaring: paddlers peak at different times, so net thrust is choppier and average speed drops.";
+    }
+    return "Very poor sync — the crew is fighting itself. Unison timing would unlock more speed than raw effort here.";
+  }
+
+  function coachingNote(rawParams, result) {
+    const params = normalizeParams(rawParams);
     const bits = [];
-    const eta = result.angleEff;
-    if (eta < 0.55) {
+    const eta = result.angleEff != null ? result.angleEff : angleEfficiency(params.angleDeg);
+
+    if (params.syncPct < 55) {
+      bits.push(syncNote(params));
+    } else if (eta < 0.55) {
       bits.push(
-        "Insert angle is far from the ~10° sweet spot — a lot of force is spilling as lift/splash instead of forward thrust."
+        "Catch angle is too upright for a strong bury — coaches look for a forward ~35–45° insert, then pull toward vertical."
+      );
+    } else if (params.angleDeg < 12) {
+      bits.push(
+        "Near-vertical catch: little reach into the water. Open toward ~35–45° at insert, then pull tall."
       );
     } else if (params.depthM < 0.18) {
       bits.push(
@@ -269,42 +514,55 @@
       );
     } else if (params.depthM > 0.5) {
       bits.push(
-        "Very deep insert: more area, but recovery costs bite into water-phase time — exit cleaner or ease depth."
+        "Very deep insert: more area, but exit gets messy — bury fully, then exit by the hip before the blade goes negative."
       );
-    } else if (params.spm > 82 && params.strokeLengthM < 1.0) {
+    } else if (result.kin && result.kin.negBlade > 0.45) {
       bits.push(
-        "High rate with a short stroke: busy arms, low impulse per stroke. Lengthen the drive a bit."
+        "Stroke may be over-long for this rate — late exit risks a negative blade (drag). Exit mid-thigh / by the hip."
+      );
+    } else if (params.spm > 85 && params.strokeLengthM < 1.0) {
+      bits.push(
+        "High rate with a short stroke: busy arms, low impulse per stroke. Lengthen the drive a touch."
       );
     } else if (params.spm < 55) {
       bits.push(
-        "Rate is low — hull drag has more time to bleed speed between drives. Pick up SPM or lengthen each stroke."
+        "Rate is low — hull drag bleeds speed between drives. Pick up SPM or lengthen each stroke."
       );
-    } else if (result.thrustShare > 0.62) {
+    } else if (params.syncPct < 80) {
+      bits.push(syncNote(params));
+    } else if (result.thrustShare > 0.6) {
       bits.push(
-        "Thrust dominated this run: solid drive vs drag. Fine-tune rate vs length for top-end speed."
+        "Thrust dominated this run: solid bury and drive vs drag. Fine-tune rate vs length for top-end speed."
       );
     } else {
       bits.push(
-        "Drag is eating a big share of impulse — either build more drive (depth/angle/length) or accept a lower cruise."
+        "Drag is eating a big share of impulse — build more drive (depth / catch angle / length) or tighten sync."
       );
     }
     return bits[0];
   }
 
   global.DragonPhysics = {
-    CFG,
-    RACE_DISTANCE_M,
-    clamp,
-    angleEfficiency,
-    effectiveArea,
-    waterFraction,
-    strokeKinematics,
-    thrustNewtons,
-    hullDragNewtons,
-    step,
-    initialState,
-    simulate,
-    defaultParams,
-    coachingNote,
+    CFG: CFG,
+    RACE_DISTANCE_M: RACE_DISTANCE_M,
+    clamp: clamp,
+    angleEfficiency: angleEfficiency,
+    effectiveArea: effectiveArea,
+    phaseFractions: phaseFractions,
+    phaseAt: phaseAt,
+    waterFractionFromPhases: waterFractionFromPhases,
+    strokeKinematics: strokeKinematics,
+    thrustAtPhase: thrustAtPhase,
+    hullDragNewtons: hullDragNewtons,
+    crewMassKg: crewMassKg,
+    paddlerPhaseOffset: paddlerPhaseOffset,
+    syncEfficiency: syncEfficiency,
+    normalizeParams: normalizeParams,
+    step: step,
+    initialState: initialState,
+    simulate: simulate,
+    defaultParams: defaultParams,
+    coachingNote: coachingNote,
+    syncNote: syncNote,
   };
 })(typeof window !== "undefined" ? window : globalThis);

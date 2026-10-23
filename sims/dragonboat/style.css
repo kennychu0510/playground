@@ -1,4 +1,4 @@
-/* Dragonboat Lab — mobile-first, Swim Finder–ish portrait layout */
+/* Dragonboat Lab v2 — mobile-first, Swim Finder–ish portrait layout */
 :root {
   --bg: #0b1220;
   --panel: #121a2b;
@@ -31,7 +31,7 @@ html, body {
 #app {
   width: 100%;
   height: 100%;
-  max-width: 540px;
+  max-width: min(960px, 100%);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -91,19 +91,43 @@ header.top .badge {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 8px;
+  padding: 0 8px 8px;
 }
 
 canvas#scene {
+  /* JS sets pixel size + CSS width/height to match the stage / screen */
   width: 100%;
-  height: auto;
+  height: 100%;
+  max-width: 100%;
   max-height: 100%;
-  aspect-ratio: 540 / 640;
   background: #071018;
   border-radius: 12px;
   border: 1px solid var(--border);
   display: block;
-  /* logical size set in JS; CSS sizes the element */
+}
+
+/* Live graph strip — overlays bottom of stage while racing / result */
+#graph-wrap {
+  display: none;
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 10px;
+  z-index: 4;
+  pointer-events: none;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+#graph-wrap.active { display: block; }
+
+canvas#graph {
+  display: block;
+  width: 100%;
+  height: 90px;
+  background: transparent;
 }
 
 /* Overlay panels */
@@ -170,17 +194,41 @@ canvas#scene {
   opacity: 0.45;
   cursor: not-allowed;
 }
+.btn.tiny {
+  width: auto;
+  padding: 8px 14px;
+  margin: 0;
+  font-size: 0.82rem;
+  pointer-events: auto;
+}
+
+/* Pause / Restart while paddling */
+.run-controls {
+  display: none;
+  position: absolute;
+  top: 52px;
+  right: 14px;
+  z-index: 6;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.run-controls.active {
+  display: flex;
+  pointer-events: none;
+}
+.run-controls .btn { pointer-events: auto; }
 
 /* Edit dock under canvas */
 #edit-dock {
   flex: 0 0 auto;
   display: none;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   padding: 8px 14px calc(12px + var(--safe-bottom));
   background: var(--panel);
   border-top: 1px solid var(--border);
-  max-height: 48vh;
+  max-height: 52vh;
   overflow-y: auto;
   z-index: 3;
 }
@@ -190,13 +238,13 @@ canvas#scene {
 .slider-row {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 2px 10px;
+  gap: 1px 10px;
   align-items: center;
-  padding: 4px 0;
+  padding: 3px 0;
 }
 
 .slider-row label {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   color: var(--muted);
   grid-column: 1 / -1;
 }
@@ -204,12 +252,12 @@ canvas#scene {
 .slider-row .name {
   color: var(--ink);
   font-weight: 600;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
 }
 
 .slider-row .val {
   font-variant-numeric: tabular-nums;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   color: var(--accent);
   font-weight: 700;
   text-align: right;
@@ -219,7 +267,7 @@ canvas#scene {
   grid-column: 1 / -1;
   width: 100%;
   accent-color: var(--accent);
-  height: 28px;
+  height: 26px;
 }
 
 #edit-actions {
@@ -253,6 +301,7 @@ canvas#scene {
   border-radius: 10px;
   padding: 8px 12px;
   font-size: 0.85rem;
+  max-width: calc(100% - 130px);
 }
 
 #hud .row span.k { color: var(--muted); }
@@ -301,4 +350,9 @@ canvas#scene {
   color: var(--muted);
   text-align: center;
   margin-top: 6px;
+}
+
+@media (max-height: 700px) {
+  #edit-dock { max-height: 46vh; }
+  canvas#graph { height: 72px; }
 }

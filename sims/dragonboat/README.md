@@ -1,10 +1,8 @@
-# Dragonboat Lab
+# Dragonboat Lab (v2)
 
-Vanilla HTML + canvas prototype: tune dragonboat paddle stroke parameters and race 100&nbsp;m to see how technique changes speed.
+Vanilla HTML + canvas: tune dragonboat paddle stroke **and crew sync**, then race 100&nbsp;m.
 
-Inspired by the Swim Finder pattern on [zounoashi.com](https://www.zounoashi.com/#/game/swim-finder) — **no npm, no bundler, no frameworks**.
-
-Part of [Kenny’s playground](../../). Homepage card links here at `sims/dragonboat/`.
+Inspired by Swim Finder on [zounoashi.com](https://www.zounoashi.com/#/game/swim-finder) — **no npm, no bundler**. Part of [Kenny’s playground](../../).
 
 ## Open locally
 
@@ -12,67 +10,53 @@ From the playground repository root:
 
 ```bash
 python3 -m http.server 8765
-# then open http://localhost:8765/sims/dragonboat/
+# http://localhost:8765/sims/dragonboat/
 ```
 
-Or open this folder’s `index.html` directly in a browser (`file://` works; no external CDNs).
+## Defaults (competent 20-seat crew)
 
-## Files
+| Knob | Default | Range |
+|------|---------|-------|
+| Stroke length | 1.35 m | 0.6–2.0 |
+| Insert depth | 32 cm | 8–65 |
+| Insert angle | **35°** (0 = vertical, 45 = forward catch) | 0–45 |
+| Rate | 72 spm | 40–95 |
+| Effort | 100% | 60–120 |
+| Crew size | 20 | 2–20 |
+| Sync quality | 85% | 0–100 |
+| Pace variance | 15% | 0–100 |
 
-| File | Role |
-|------|------|
-| `index.html` | Shell + slider UI overlays |
-| `style.css` | Mobile-first portrait layout |
-| `physics.js` | 1D boat + stroke toy model (read this) |
-| `game.js` | States INTRO→EDIT→RUN→RESULT + canvas scene |
+Race: **100 m standing start** (default crew ≈ **34 s**). Pause / Resume / Restart mid-run. Live speed + pace graph.
 
-## Default stroke (competent crew)
+## Physics (toy — see `physics.js`)
 
-- Stroke length **1.35 m**
-- Insert depth **32 cm**
-- Insert angle **12°** from vertical
-- Rate **72 spm**
-- Effort **100%**
-- Race: **100 m standing start**
-
-## Physics (toy — see comments in `physics.js`)
+Phases: **reach → catch → pull/drive → exit → recovery** (rate-dependent fractions).
 
 **Hull drag**
 
 \[
-F_\mathrm{drag} = -k_d\, v\, |v|
+F_\mathrm{drag} = -k_d(N)\, v\, |v|
 \]
 
-**Drive thrust** (water phase only)
+**Per-paddler drive** (catch/drive/exit only), summed over crew:
 
 \[
-v_\mathrm{rel} = \max(\underbrace{L / T_\mathrm{water}}_{\text{pull speed}} - s\, v_\mathrm{boat},\, v_\mathrm{floor})
-\]
-
-\[
-A_\mathrm{eff} = w_\mathrm{blade}\cdot d_\mathrm{soft}(d)
+v_\mathrm{rel} = \max(L / T_\mathrm{water} - s\, v_\mathrm{boat},\, v_\mathrm{floor})
 \]
 
 \[
-\eta_\mathrm{angle} = \exp\!\Big(-\frac{(\theta - \theta_\mathrm{peak})^2}{2\sigma^2}\Big)
-\quad(\theta_\mathrm{peak}\approx 10°)
+\eta_\mathrm{angle} = \mathrm{floor} + (1-\mathrm{floor})\,
+\exp\!\Big(-\frac{(\theta - 38^\circ)^2}{2\sigma^2}\Big)
+\quad \theta \in [0^\circ,45^\circ]
 \]
 
 \[
-F_\mathrm{thrust} = N_\mathrm{blades}\cdot e\cdot \tfrac12\rho\, C_d\, A_\mathrm{eff}\, v_\mathrm{rel}^2\, \eta_\mathrm{angle}
+F_i = e\cdot \tfrac12\rho\, C_d\, A_\mathrm{eff}\, v_\mathrm{rel}^2\, \eta_\mathrm{angle}\, \mathrm{shape}(\mathrm{phase}_i)
 \]
 
-Recovery phase: hull drag only. Semi-implicit Euler @ 60 Hz.
+Sync &lt; 100% spreads phase offsets (“caterpillaring”). Late/over-long exit adds a **negative-blade** drag penalty. Mass = boat + 75 kg × crew.
 
-## Knobs worth tuning next
-
-- `CFG.hullDragK` / `CFG.massKg` — top speed & acceleration feel
-- `CFG.crewBlades` — how strong one “unison” stroke is
-- `CFG.anglePeakDeg` / `CFG.angleWidthDeg` — catch-angle sweet spot
-- `CFG.slip` — how much boat speed kills blade relative flow
-- Water-fraction vs depth penalty — recovery realism
-- Multi-paddler timing offset / left-right side view
-- Bilingual EN/中文 UI
+Coaching refs encoded as comments: London Dragon Boat Club, Oyster Point Dragons (~45° catch, exit mid-thigh), Dragon Boat Net biomechanics, sync / caterpillar lore, ISBS-ish rate vs water-phase.
 
 ## License
 

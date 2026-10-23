@@ -28,17 +28,27 @@
         </div>
       </div>
 
+      <div id="run-controls" class="run-controls" aria-label="Race controls">
+        <button type="button" class="btn tiny" id="btn-pause">Pause</button>
+        <button type="button" class="btn tiny secondary" id="btn-restart">Restart</button>
+      </div>
+
+      <div id="graph-wrap" aria-hidden="true">
+        <canvas id="graph" width="540" height="110" aria-label="Live speed and pace graph"></canvas>
+      </div>
+
       <!-- INTRO -->
       <div id="panel-intro" class="panel active">
         <h2>Paddle Lab</h2>
         <p class="lead">
-          Tune stroke length, insert depth, angle, and rate — then race 100&nbsp;m
-          and see how technique changes boat speed. Toy physics, real intuition.
+          Tune catch angle (0–45°), depth, length, rate, crew size, and sync —
+          then race 100&nbsp;m. Multi-paddler toy physics, 2D side view.
         </p>
         <div class="card">
           <p style="font-size:0.85rem;line-height:1.45;color:var(--muted)">
-            Inspired by the Swim Finder pattern on zounoashi.com: edit → run → result,
-            all in vanilla HTML + canvas. No build step.
+            Coach-aligned stroke: bury near ~45° forward, pull toward vertical,
+            exit by the hip. Poor sync (“caterpillaring”) chops force and speed.
+            Vanilla HTML + canvas — no build step.
           </p>
         </div>
         <button type="button" class="btn" id="btn-start">Start tuning</button>
@@ -62,10 +72,11 @@
             <div><span class="num" id="res-peak">—</span><span class="unit">m/s</span></div>
           </div>
           <div class="stat">
-            <div class="label">Distance</div>
-            <div><span class="num">100</span><span class="unit">m</span></div>
+            <div class="label">Sync</div>
+            <div><span class="num" id="res-sync">—</span><span class="unit">%</span></div>
           </div>
         </div>
+        <div class="note" id="res-sync-note"></div>
         <div class="note" id="res-note"></div>
         <button type="button" class="btn" id="btn-again">Tweak stroke</button>
         <button type="button" class="btn secondary" id="btn-rerun">Race again</button>
@@ -85,19 +96,34 @@
         <input id="sl-depth" type="range" min="0.08" max="0.65" step="0.01" value="0.32" />
       </div>
       <div class="slider-row">
-        <label><span class="name">Insert angle</span> — from vertical at catch (0° = vertical)</label>
-        <span class="val" id="val-angle">12°</span>
-        <input id="sl-angle" type="range" min="-20" max="55" step="1" value="12" />
+        <label><span class="name">Insert angle</span> — 0° vertical → 45° forward catch</label>
+        <span class="val" id="val-angle">35°</span>
+        <input id="sl-angle" type="range" min="0" max="45" step="1" value="35" />
       </div>
       <div class="slider-row">
         <label><span class="name">Stroke rate</span></label>
         <span class="val" id="val-spm">72 spm</span>
-        <input id="sl-spm" type="range" min="40" max="90" step="1" value="72" />
+        <input id="sl-spm" type="range" min="40" max="95" step="1" value="72" />
       </div>
       <div class="slider-row">
-        <label><span class="name">Effort</span> — how hard you pull</label>
+        <label><span class="name">Effort</span> — how hard each paddler pulls</label>
         <span class="val" id="val-effort">100%</span>
         <input id="sl-effort" type="range" min="0.6" max="1.2" step="0.05" value="1.0" />
+      </div>
+      <div class="slider-row">
+        <label><span class="name">Crew size</span> — paddlers (2D unison row)</label>
+        <span class="val" id="val-crew">20</span>
+        <input id="sl-crew" type="range" min="2" max="20" step="1" value="20" />
+      </div>
+      <div class="slider-row">
+        <label><span class="name">Sync quality</span> — 100% = perfect timing</label>
+        <span class="val" id="val-sync">85%</span>
+        <input id="sl-sync" type="range" min="0" max="100" step="1" value="85" />
+      </div>
+      <div class="slider-row">
+        <label><span class="name">Pace variance</span> — SPM spread across crew</label>
+        <span class="val" id="val-pace">15%</span>
+        <input id="sl-pace" type="range" min="0" max="100" step="1" value="15" />
       </div>
       <p class="hint" id="est-time">est. —</p>
       <div id="edit-actions">
