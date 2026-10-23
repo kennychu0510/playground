@@ -98,11 +98,14 @@ header.top .badge {
 }
 
 canvas#scene {
-  /* Fill the stage box; JS only sets the backing-store (pixel) size */
+  /* Fill stage; JS also sets explicit px size (Safari blank-canvas fix) */
   position: absolute;
-  inset: 8px 8px 8px 8px;
-  width: auto;
-  height: auto;
+  left: 8px;
+  top: 8px;
+  right: 8px;
+  bottom: 8px;
+  width: calc(100% - 16px);
+  height: calc(100% - 16px);
   max-width: none;
   max-height: none;
   background: #071018;
@@ -110,6 +113,8 @@ canvas#scene {
   border: 1px solid var(--border);
   display: block;
   z-index: 1;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 /* Live graph strip — overlays bottom of stage while racing / result */

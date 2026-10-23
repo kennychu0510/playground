@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b1220" />
   <title>Dragonboat Lab — paddle stroke sandbox</title>
-  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="style.css?v=4" />
 </head>
 <body>
   <div id="app">
@@ -38,7 +38,7 @@
       </div>
 
       <!-- INTRO -->
-      <div id="panel-intro" class="panel active">
+      <div id="panel-intro" class="panel">
         <h2>Paddle Lab</h2>
         <p class="lead">
           Tune catch angle (0–45°), depth, length, rate, crew size, and sync —
@@ -84,7 +84,7 @@
     </div>
 
     <!-- EDIT dock -->
-    <div id="edit-dock">
+    <div id="edit-dock" class="active">
       <div class="slider-row">
         <label><span class="name">Stroke length</span> — catch-to-exit through water</label>
         <span class="val" id="val-length">1.35 m</span>
@@ -133,7 +133,7 @@
     </div>
   </div>
 
-  <script src="physics.js?v=3"></script>
-  <script src="game.js?v=3"></script>
+  <script src="physics.js?v=4"></script>
+  <script src="game.js?v=4"></script>
 </body>
 </html>

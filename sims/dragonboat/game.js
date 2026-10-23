@@ -73,7 +73,14 @@
     $("btn-rerun").addEventListener("click", startRun);
     $("btn-pause").addEventListener("click", togglePause);
     $("btn-restart").addEventListener("click", function () {
-      if (state === S.RUN || state === S.RESULT) startRun();
+      // Back to customization (keep current slider values)
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
+      paused = false;
+      sim = P.initialState();
+      paddleTrail = [];
+      speedHistory = [];
+      lastTs = 0;
+      setState(S.EDIT);
     });
 
     const map = [
@@ -119,7 +126,7 @@
     onResize();
 
     syncSliders();
-    setState(S.INTRO);
+    setState(S.EDIT);
     updateEstimate();
     draw();
   }
@@ -132,25 +139,23 @@
   function resizeCanvas() {
     const wrap = els.stageWrap || $("stage-wrap");
     if (!wrap || !els.canvas) return;
-    // Canvas is position:absolute inset inside the stage — measure the box, not the canvas.
     const rect = wrap.getBoundingClientRect();
-    const pad = 16; // matches CSS inset 8px * 2
+    const pad = 16; // CSS inset 8px * 2
     let cssW = Math.floor(rect.width - pad);
     let cssH = Math.floor(rect.height - pad);
-    // Fallbacks for first paint / iOS when flex height is still settling
     if (!(cssW > 40)) cssW = Math.floor(Math.min(window.innerWidth, 960) - 24);
     if (!(cssH > 80)) {
       const dock = els.editDock && els.editDock.classList.contains("active") ? 0.38 : 0.12;
-      cssH = Math.floor(window.innerHeight * (1 - dock) - 72);
+      cssH = Math.floor((window.visualViewport ? window.visualViewport.height : window.innerHeight) * (1 - dock) - 72);
     }
     cssW = Math.max(200, cssW);
     cssH = Math.max(160, cssH);
     W = cssW;
     H = cssH;
-    // Do not set inline width/height — CSS absolute inset owns layout.
-    els.canvas.style.width = "";
-    els.canvas.style.height = "";
-    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    // iOS Safari: absolute + width/height:auto often paints a 0×0 canvas. Set both CSS and buffer.
+    els.canvas.style.width = cssW + "px";
+    els.canvas.style.height = cssH + "px";
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const bw = Math.round(W * dpr);
     const bh = Math.round(H * dpr);
     if (els.canvas.width !== bw || els.canvas.height !== bh) {
