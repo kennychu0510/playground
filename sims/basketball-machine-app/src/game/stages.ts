@@ -22,7 +22,7 @@ export type StageDef = {
   duration: number
   /** Points needed to clear */
   goal: number
-  /** Rim inner radius (metres). Default ~0.23 */
+  /** Rim inner radius (metres). Default ~0.22 */
   rimRadius: number
   motion: HoopMotion
 }
@@ -34,7 +34,7 @@ export const STAGES: StageDef[] = [
     blurb: 'Static hoop. Find your flick.',
     duration: 45,
     goal: 20,
-    rimRadius: 0.23,
+    rimRadius: 0.22,
     motion: { kind: 'static' },
   },
   {
@@ -43,8 +43,8 @@ export const STAGES: StageDef[] = [
     blurb: 'Hoop drifts left and right.',
     duration: 50,
     goal: 24,
-    rimRadius: 0.23,
-    motion: { kind: 'slide', ampX: 0.55, speed: 0.7 },
+    rimRadius: 0.22,
+    motion: { kind: 'slide', ampX: 0.32, speed: 0.85 },
   },
   {
     id: 3,
@@ -52,8 +52,8 @@ export const STAGES: StageDef[] = [
     blurb: 'Faster slide with a little depth sway.',
     duration: 55,
     goal: 28,
-    rimRadius: 0.22,
-    motion: { kind: 'wave', ampX: 0.7, ampZ: 0.28, speed: 1.15 },
+    rimRadius: 0.21,
+    motion: { kind: 'wave', ampX: 0.38, ampZ: 0.14, speed: 1.2 },
   },
   {
     id: 4,
@@ -61,13 +61,16 @@ export const STAGES: StageDef[] = [
     blurb: 'Smaller rim on a figure-eight path.',
     duration: 60,
     goal: 32,
-    rimRadius: 0.185,
-    motion: { kind: 'figure8', ampX: 0.6, ampZ: 0.35, speed: 0.95 },
+    rimRadius: 0.18,
+    motion: { kind: 'figure8', ampX: 0.34, ampZ: 0.16, speed: 1.05 },
   },
 ]
 
-/** Resting hoop centre (metres). Y = rim height. */
-export const HOOP_HOME = { x: 0, y: 2.55, z: -4.2 } as const
+/**
+ * Resting hoop centre (metres) for a compact arcade cabinet.
+ * Short throw: rim ~2.1 m ahead of the trough, chest-high in frame.
+ */
+export const HOOP_HOME = { x: 0, y: 1.72, z: -1.95 } as const
 
 export function hoopOffset(motion: HoopMotion, t: number): { x: number; z: number } {
   switch (motion.kind) {

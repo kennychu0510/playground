@@ -19,21 +19,27 @@ const overlayBody = document.querySelector<HTMLParagraphElement>('#overlay-body'
 const overlayRules = document.querySelector<HTMLUListElement>('#overlay-rules')!
 const btnPrimary = document.querySelector<HTMLButtonElement>('#btn-primary')!
 
-const BALL_R = 0.12
-const GRAVITY = -11.5
-const SHOOT_POS = new THREE.Vector3(0, 1.15, 1.55)
-const CAM_POS = new THREE.Vector3(0, 1.55, 3.35)
-const CAM_LOOK = new THREE.Vector3(0, 2.1, -3.5)
-const IMPULSE_SCALE = 0.95
-const MIN_FLICK = 180
-const MAX_FLICK = 1400
-const UP_BIAS = 0.55
-const FORWARD_BIAS = 1.15
+/** Compact arcade cabinet scale (metres). */
+const BALL_R = 0.105
+const GRAVITY = -12.5
+/** Ready-ball rest on the front trough / shelf. */
+const SHOOT_POS = new THREE.Vector3(0, 0.92, 0.95)
+/** Fixed arcade POV: behind trough, looking at backboard + rim. */
+const CAM_POS = new THREE.Vector3(0, 1.38, 2.15)
+const CAM_LOOK = new THREE.Vector3(0, 1.55, -1.55)
+const IMPULSE_SCALE = 0.72
+const MIN_FLICK = 160
+const MAX_FLICK = 1300
+const UP_BIAS = 0.62
+const FORWARD_BIAS = 0.95
+const MAX_FLIGHT_BALLS = 12
+const BALL_TTL_MS = 6500
 
 const COL_RIM = 0x0001
 const COL_BOARD = 0x0002
 const COL_SENSOR = 0x0004
 const COL_BALL = 0x0008
+const COL_WORLD = 0x0010
 
 type Phase = 'title' | 'playing' | 'cleared' | 'failed' | 'won'
 
@@ -55,7 +61,7 @@ const state: GameState = {
   totalScore: 0,
   streak: 0,
   timeLeft: STAGES[0]!.duration,
-  banner: 'Flick up to shoot · beat the clock',
+  banner: 'Flick up to shoot · keep firing',
   bannerKind: '',
 }
 
@@ -87,7 +93,7 @@ function syncHud() {
 }
 
 let bannerClearAt = 0
-function flashBanner(text: string, kind: GameState['bannerKind'], ms = 1400) {
+function flashBanner(text: string, kind: GameState['bannerKind'], ms = 1100) {
   state.banner = text
   state.bannerKind = kind
   syncHud()
@@ -120,61 +126,95 @@ renderer.setSize(innerWidth, innerHeight)
 renderer.shadowMap.enabled = true
 
 const scene = new THREE.Scene()
-scene.background = new THREE.Color(0x0b1220)
-scene.fog = new THREE.Fog(0x0b1220, 12, 28)
+scene.background = new THREE.Color(0x0a1020)
+scene.fog = new THREE.Fog(0x0a1020, 8, 16)
 
-const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.05, 40)
+const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.05, 30)
 camera.position.copy(CAM_POS)
 camera.lookAt(CAM_LOOK)
 
-scene.add(new THREE.HemisphereLight(0xc8d8ff, 0x1a2030, 0.85))
-const key = new THREE.DirectionalLight(0xffffff, 1.05)
-key.position.set(2.5, 8, 4)
+scene.add(new THREE.HemisphereLight(0xc8d8ff, 0x1a2030, 0.9))
+const key = new THREE.DirectionalLight(0xffffff, 1.1)
+key.position.set(1.8, 6, 3)
 key.castShadow = true
 key.shadow.mapSize.set(1024, 1024)
 scene.add(key)
-const fill = new THREE.PointLight(0xff8a3d, 0.45, 18)
-fill.position.set(-2, 2.2, 1)
+const fill = new THREE.PointLight(0xff8a3d, 0.55, 12)
+fill.position.set(-1.4, 1.8, 0.6)
 scene.add(fill)
+const hoopLight = new THREE.PointLight(0xfff2c8, 0.7, 6)
+hoopLight.position.set(0, 2.4, -1.6)
+scene.add(hoopLight)
 
 const root = new THREE.Group()
 scene.add(root)
 
+// Cabinet floor / deck
 const floor = new THREE.Mesh(
-  new THREE.BoxGeometry(6, 0.12, 10),
-  new THREE.MeshStandardMaterial({ color: 0x1e2a44, roughness: 0.85, metalness: 0.05 }),
+  new THREE.BoxGeometry(2.4, 0.1, 4.2),
+  new THREE.MeshStandardMaterial({ color: 0x1a2740, roughness: 0.85, metalness: 0.05 }),
 )
-floor.position.set(0, -0.06, -1.5)
+floor.position.set(0, -0.05, -0.55)
 floor.receiveShadow = true
 root.add(floor)
 
-const lane = new THREE.Mesh(
-  new THREE.BoxGeometry(2.4, 0.02, 7.5),
-  new THREE.MeshStandardMaterial({ color: 0x2a3a58, roughness: 0.7 }),
+// Return ramp (angled floor toward front)
+const ramp = new THREE.Mesh(
+  new THREE.BoxGeometry(2.1, 0.06, 2.6),
+  new THREE.MeshStandardMaterial({ color: 0x243552, roughness: 0.7 }),
 )
-lane.position.set(0, 0.01, -1.2)
-lane.receiveShadow = true
-root.add(lane)
+ramp.position.set(0, 0.08, -0.85)
+ramp.rotation.x = -0.08
+ramp.receiveShadow = true
+root.add(ramp)
 
-const cabinet = new THREE.Mesh(
-  new THREE.BoxGeometry(2.6, 0.9, 1.4),
-  new THREE.MeshStandardMaterial({ color: 0x8b1e2d, roughness: 0.55, metalness: 0.15 }),
+// Front trough / ball shelf
+const trough = new THREE.Mesh(
+  new THREE.BoxGeometry(1.6, 0.12, 0.55),
+  new THREE.MeshStandardMaterial({ color: 0x8b1e2d, roughness: 0.5, metalness: 0.2 }),
 )
-cabinet.position.set(0, 0.45, 2.0)
+trough.position.set(0, 0.72, 1.05)
+trough.castShadow = true
+root.add(trough)
+
+const troughLip = new THREE.Mesh(
+  new THREE.BoxGeometry(1.62, 0.05, 0.08),
+  new THREE.MeshStandardMaterial({ color: 0xf0b429, metalness: 0.45, roughness: 0.35 }),
+)
+troughLip.position.set(0, 0.82, 1.28)
+root.add(troughLip)
+
+// Cabinet front body under trough
+const cabinet = new THREE.Mesh(
+  new THREE.BoxGeometry(2.2, 0.85, 0.7),
+  new THREE.MeshStandardMaterial({ color: 0x6e1524, roughness: 0.55, metalness: 0.12 }),
+)
+cabinet.position.set(0, 0.35, 1.15)
 cabinet.castShadow = true
 root.add(cabinet)
 
-const trim = new THREE.Mesh(
-  new THREE.BoxGeometry(2.65, 0.08, 1.45),
-  new THREE.MeshStandardMaterial({ color: 0xf0b429, metalness: 0.4, roughness: 0.4 }),
-)
-trim.position.set(0, 0.92, 2.0)
-root.add(trim)
+// Side walls of the machine
+const wallMat = new THREE.MeshStandardMaterial({ color: 0x2a3550, roughness: 0.65, metalness: 0.1 })
+for (const x of [-1.15, 1.15]) {
+  const wall = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.9, 3.8), wallMat)
+  wall.position.set(x, 0.95, -0.4)
+  wall.castShadow = true
+  root.add(wall)
+}
 
-const railMat = new THREE.MeshStandardMaterial({ color: 0x3a455c, roughness: 0.6 })
-for (const x of [-1.35, 1.35]) {
-  const rail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.35, 8.5), railMat)
-  rail.position.set(x, 0.18, -1.5)
+// Back panel behind hoop
+const backPanel = new THREE.Mesh(
+  new THREE.BoxGeometry(2.3, 2.4, 0.1),
+  new THREE.MeshStandardMaterial({ color: 0x121a2c, roughness: 0.8 }),
+)
+backPanel.position.set(0, 1.2, -2.55)
+root.add(backPanel)
+
+// Neon-ish side rails
+const railMat = new THREE.MeshStandardMaterial({ color: 0xf0b429, metalness: 0.55, roughness: 0.35 })
+for (const x of [-1.08, 1.08]) {
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 3.6), railMat)
+  rail.position.set(x, 1.82, -0.45)
   root.add(rail)
 }
 
@@ -182,30 +222,30 @@ const hoopGroup = new THREE.Group()
 root.add(hoopGroup)
 
 const backboard = new THREE.Mesh(
-  new THREE.BoxGeometry(1.35, 0.9, 0.06),
+  new THREE.BoxGeometry(1.15, 0.78, 0.05),
   new THREE.MeshStandardMaterial({
-    color: 0xf2f5ff,
-    roughness: 0.35,
+    color: 0xf4f7ff,
+    roughness: 0.3,
     metalness: 0.05,
     transparent: true,
-    opacity: 0.92,
+    opacity: 0.94,
   }),
 )
-backboard.position.set(0, 0.35, 0.12)
+backboard.position.set(0, 0.32, 0.1)
 backboard.castShadow = true
 hoopGroup.add(backboard)
 
 const square = new THREE.Mesh(
-  new THREE.PlaneGeometry(0.45, 0.35),
+  new THREE.PlaneGeometry(0.38, 0.3),
   new THREE.MeshBasicMaterial({ color: 0xff3b4a }),
 )
-square.position.set(0, 0.18, 0.155)
+square.position.set(0, 0.16, 0.128)
 hoopGroup.add(square)
 
-const rimMat = new THREE.MeshStandardMaterial({ color: 0xff5a1f, metalness: 0.7, roughness: 0.3 })
-let rimMesh = new THREE.Mesh(new THREE.TorusGeometry(0.23, 0.02, 10, 36), rimMat)
+const rimMat = new THREE.MeshStandardMaterial({ color: 0xff5a1f, metalness: 0.75, roughness: 0.28 })
+let rimMesh = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.018, 10, 36), rimMat)
 rimMesh.rotation.x = Math.PI / 2
-rimMesh.position.set(0, 0, -0.18)
+rimMesh.position.set(0, 0, -0.16)
 rimMesh.castShadow = true
 hoopGroup.add(rimMesh)
 
@@ -218,7 +258,7 @@ function rebuildNet(rimR: number) {
     if (c instanceof THREE.Line) c.geometry.dispose()
     netGroup.remove(c)
   }
-  const netMat = new THREE.LineBasicMaterial({ color: 0xe8eefc, transparent: true, opacity: 0.55 })
+  const netMat = new THREE.LineBasicMaterial({ color: 0xe8eefc, transparent: true, opacity: 0.6 })
   const strands = 12
   for (let i = 0; i < strands; i++) {
     const a = (i / strands) * Math.PI * 2
@@ -226,50 +266,52 @@ function rebuildNet(rimR: number) {
     for (let k = 0; k <= 5; k++) {
       const t = k / 5
       const rr = rimR * (1 - t * 0.55)
-      const y = -t * 0.42
+      const y = -t * 0.38
       const swirl = a + t * 0.55
-      pts.push(new THREE.Vector3(Math.cos(swirl) * rr, y, -0.18 + Math.sin(swirl) * rr * 0.15))
+      pts.push(new THREE.Vector3(Math.cos(swirl) * rr, y, -0.16 + Math.sin(swirl) * rr * 0.12))
     }
     netGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), netMat))
   }
 }
-rebuildNet(0.23)
+rebuildNet(0.22)
 
+// Support pole + arm (short arcade mount)
 const pole = new THREE.Mesh(
-  new THREE.CylinderGeometry(0.06, 0.08, 2.7, 12),
-  new THREE.MeshStandardMaterial({ color: 0x9aa3b2, metalness: 0.5, roughness: 0.4 }),
+  new THREE.CylinderGeometry(0.05, 0.065, 1.85, 12),
+  new THREE.MeshStandardMaterial({ color: 0x9aa3b2, metalness: 0.55, roughness: 0.38 }),
 )
-pole.position.set(0, 1.35, HOOP_HOME.z + 0.55)
+pole.position.set(0, 0.92, HOOP_HOME.z + 0.42)
 pole.castShadow = true
 root.add(pole)
 
 const arm = new THREE.Mesh(
-  new THREE.BoxGeometry(0.1, 0.1, 0.7),
-  new THREE.MeshStandardMaterial({ color: 0x9aa3b2, metalness: 0.5, roughness: 0.4 }),
+  new THREE.BoxGeometry(0.08, 0.08, 0.5),
+  new THREE.MeshStandardMaterial({ color: 0x9aa3b2, metalness: 0.55, roughness: 0.38 }),
 )
-arm.position.set(0, HOOP_HOME.y + 0.35, HOOP_HOME.z + 0.28)
+arm.position.set(0, HOOP_HOME.y + 0.3, HOOP_HOME.z + 0.22)
 root.add(arm)
 
 hoopGroup.position.set(HOOP_HOME.x, HOOP_HOME.y, HOOP_HOME.z)
 
+const ballGeo = new THREE.SphereGeometry(BALL_R, 28, 20)
 const ballMat = new THREE.MeshStandardMaterial({ color: 0xe4572e, roughness: 0.55, metalness: 0.05 })
-const ballMesh = new THREE.Mesh(new THREE.SphereGeometry(BALL_R, 32, 24), ballMat)
-ballMesh.castShadow = true
-root.add(ballMesh)
+const seamMat = new THREE.LineBasicMaterial({ color: 0x1a1a1a })
 
-{
-  const seamMat = new THREE.LineBasicMaterial({ color: 0x1a1a1a })
+function makeBallMesh(): THREE.Mesh {
+  const mesh = new THREE.Mesh(ballGeo, ballMat)
+  mesh.castShadow = true
   for (const rot of [
     [0, 0, 0],
     [Math.PI / 2, 0, 0],
     [0, Math.PI / 2, Math.PI / 4],
   ] as const) {
     const curve = new THREE.EllipseCurve(0, 0, BALL_R * 1.01, BALL_R * 1.01, 0, Math.PI * 2, false, 0)
-    const pts3 = curve.getPoints(48).map((p) => new THREE.Vector3(p.x, p.y, 0))
+    const pts3 = curve.getPoints(40).map((p) => new THREE.Vector3(p.x, p.y, 0))
     const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts3), seamMat)
     line.rotation.set(rot[0], rot[1], rot[2])
-    ballMesh.add(line)
+    mesh.add(line)
   }
+  return mesh
 }
 
 const trailMat = new THREE.LineBasicMaterial({ color: 0x3ecf8e, transparent: true, opacity: 0 })
@@ -281,15 +323,56 @@ root.add(trailLine)
 const world = new RAPIER.World({ x: 0, y: GRAVITY, z: 0 })
 const eventQueue = new RAPIER.EventQueue(true)
 
-const floorBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, -0.06, -1.5))
-world.createCollider(RAPIER.ColliderDesc.cuboid(3, 0.06, 5).setRestitution(0.35).setFriction(0.8), floorBody)
+const floorBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, -0.05, -0.55))
+world.createCollider(
+  RAPIER.ColliderDesc.cuboid(1.2, 0.05, 2.1)
+    .setRestitution(0.3)
+    .setFriction(0.85)
+    .setCollisionGroups((COL_WORLD << 16) | COL_BALL),
+  floorBody,
+)
 
-for (const x of [-1.45, 1.45]) {
-  const b = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(x, 1.2, -1.5))
-  world.createCollider(RAPIER.ColliderDesc.cuboid(0.05, 1.2, 4.5).setRestitution(0.4).setFriction(0.3), b)
+// Ramp collider (approx)
+const rampBody = world.createRigidBody(
+  RAPIER.RigidBodyDesc.fixed()
+    .setTranslation(0, 0.08, -0.85)
+    .setRotation({ x: Math.sin(-0.04), y: 0, z: 0, w: Math.cos(-0.04) }),
+)
+world.createCollider(
+  RAPIER.ColliderDesc.cuboid(1.05, 0.03, 1.3)
+    .setRestitution(0.25)
+    .setFriction(0.7)
+    .setCollisionGroups((COL_WORLD << 16) | COL_BALL),
+  rampBody,
+)
+
+// Trough shelf (balls rest here before launch)
+const troughBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, 0.72, 1.05))
+world.createCollider(
+  RAPIER.ColliderDesc.cuboid(0.8, 0.06, 0.28)
+    .setRestitution(0.15)
+    .setFriction(0.9)
+    .setCollisionGroups((COL_WORLD << 16) | COL_BALL),
+  troughBody,
+)
+
+for (const x of [-1.15, 1.15]) {
+  const b = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(x, 0.95, -0.4))
+  world.createCollider(
+    RAPIER.ColliderDesc.cuboid(0.05, 0.95, 1.9)
+      .setRestitution(0.45)
+      .setFriction(0.3)
+      .setCollisionGroups((COL_WORLD << 16) | COL_BALL),
+    b,
+  )
 }
-const backWall = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, 1.5, -5.6))
-world.createCollider(RAPIER.ColliderDesc.cuboid(2, 1.8, 0.08).setRestitution(0.45), backWall)
+const backWall = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0, 1.2, -2.55))
+world.createCollider(
+  RAPIER.ColliderDesc.cuboid(1.15, 1.2, 0.05)
+    .setRestitution(0.5)
+    .setCollisionGroups((COL_WORLD << 16) | COL_BALL),
+  backWall,
+)
 
 const hoopBody = world.createRigidBody(
   RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(HOOP_HOME.x, HOOP_HOME.y, HOOP_HOME.z),
@@ -324,8 +407,8 @@ function rebuildHoopColliders(rimR: number) {
   }
 
   const board = world.createCollider(
-    RAPIER.ColliderDesc.cuboid(0.675, 0.45, 0.03)
-      .setTranslation(0, 0.35, 0.12)
+    RAPIER.ColliderDesc.cuboid(0.575, 0.39, 0.025)
+      .setTranslation(0, 0.32, 0.1)
       .setRestitution(0.55)
       .setFriction(0.4)
       .setCollisionGroups((COL_BOARD << 16) | COL_BALL)
@@ -335,14 +418,14 @@ function rebuildHoopColliders(rimR: number) {
   boardHandle = board.handle
 
   const segs = 16
-  const tube = 0.018
+  const tube = 0.016
   for (let i = 0; i < segs; i++) {
     const a0 = (i / segs) * Math.PI * 2
     const a1 = ((i + 1) / segs) * Math.PI * 2
     const x0 = Math.cos(a0) * rimR
-    const z0 = -0.18 + Math.sin(a0) * rimR
+    const z0 = -0.16 + Math.sin(a0) * rimR
     const x1 = Math.cos(a1) * rimR
-    const z1 = -0.18 + Math.sin(a1) * rimR
+    const z1 = -0.16 + Math.sin(a1) * rimR
     const mx = (x0 + x1) / 2
     const mz = (z0 + z1) / 2
     const dx = x1 - x0
@@ -362,8 +445,8 @@ function rebuildHoopColliders(rimR: number) {
   }
 
   const sensor = world.createCollider(
-    RAPIER.ColliderDesc.cylinder(0.12, rimR * 0.72)
-      .setTranslation(0, -0.14, -0.18)
+    RAPIER.ColliderDesc.cylinder(0.11, rimR * 0.7)
+      .setTranslation(0, -0.13, -0.16)
       .setSensor(true)
       .setCollisionGroups((COL_SENSOR << 16) | COL_BALL)
       .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS),
@@ -373,9 +456,9 @@ function rebuildHoopColliders(rimR: number) {
 
   hoopGroup.remove(rimMesh)
   rimMesh.geometry.dispose()
-  rimMesh = new THREE.Mesh(new THREE.TorusGeometry(rimR, 0.02, 10, 36), rimMat)
+  rimMesh = new THREE.Mesh(new THREE.TorusGeometry(rimR, 0.018, 10, 36), rimMat)
   rimMesh.rotation.x = Math.PI / 2
-  rimMesh.position.set(0, 0, -0.18)
+  rimMesh.position.set(0, 0, -0.16)
   rimMesh.castShadow = true
   hoopGroup.add(rimMesh)
   rebuildNet(rimR)
@@ -383,46 +466,83 @@ function rebuildHoopColliders(rimR: number) {
 
 rebuildHoopColliders(STAGES[0]!.rimRadius)
 
-const ballBody = world.createRigidBody(
-  RAPIER.RigidBodyDesc.dynamic()
-    .setTranslation(SHOOT_POS.x, SHOOT_POS.y, SHOOT_POS.z)
-    .setLinearDamping(0.12)
-    .setAngularDamping(0.25)
-    .setCcdEnabled(true),
-)
-const ballCollider = world.createCollider(
-  RAPIER.ColliderDesc.ball(BALL_R)
-    .setRestitution(0.72)
-    .setFriction(0.55)
-    .setDensity(1.1)
-    .setCollisionGroups((COL_BALL << 16) | 0xffff)
-    .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS),
-  ballBody,
-)
-
-type ShotFlags = {
+type BallEntity = {
+  mesh: THREE.Mesh
+  body: RAPIER.RigidBody
+  collider: RAPIER.Collider
   inFlight: boolean
   scored: boolean
   touchedRim: boolean
   spawnAt: number
-}
-const shot: ShotFlags = { inFlight: false, scored: false, touchedRim: false, spawnAt: 0 }
-
-function resetBall() {
-  ballBody.setTranslation({ x: SHOOT_POS.x, y: SHOOT_POS.y, z: SHOOT_POS.z }, true)
-  ballBody.setLinvel({ x: 0, y: 0, z: 0 }, true)
-  ballBody.setAngvel({ x: 0, y: 0, z: 0 }, true)
-  ballBody.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true)
-  ballBody.sleep()
-  shot.inFlight = false
-  shot.scored = false
-  shot.touchedRim = false
-  shot.spawnAt = performance.now()
-  ballMesh.position.copy(SHOOT_POS)
-  ballMesh.quaternion.identity()
+  /** Ready ball on trough (not yet flicked). */
+  ready: boolean
 }
 
-resetBall()
+const balls: BallEntity[] = []
+const ballByCollider = new Map<number, BallEntity>()
+
+function createBallEntity(ready: boolean): BallEntity {
+  const mesh = makeBallMesh()
+  root.add(mesh)
+  const body = world.createRigidBody(
+    RAPIER.RigidBodyDesc.dynamic()
+      .setTranslation(SHOOT_POS.x, SHOOT_POS.y, SHOOT_POS.z)
+      .setLinearDamping(0.1)
+      .setAngularDamping(0.22)
+      .setCcdEnabled(true),
+  )
+  const collider = world.createCollider(
+    RAPIER.ColliderDesc.ball(BALL_R)
+      .setRestitution(0.7)
+      .setFriction(0.5)
+      .setDensity(1.05)
+      .setCollisionGroups((COL_BALL << 16) | (COL_WORLD | COL_RIM | COL_BOARD | COL_SENSOR | COL_BALL))
+      .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS),
+    body,
+  )
+  const ent: BallEntity = {
+    mesh,
+    body,
+    collider,
+    inFlight: false,
+    scored: false,
+    touchedRim: false,
+    spawnAt: performance.now(),
+    ready,
+  }
+  balls.push(ent)
+  ballByCollider.set(collider.handle, ent)
+  if (ready) {
+    body.setLinvel({ x: 0, y: 0, z: 0 }, true)
+    body.setAngvel({ x: 0, y: 0, z: 0 }, true)
+    body.sleep()
+    mesh.position.copy(SHOOT_POS)
+    mesh.quaternion.identity()
+  }
+  return ent
+}
+
+function destroyBall(ent: BallEntity) {
+  ballByCollider.delete(ent.collider.handle)
+  world.removeCollider(ent.collider, true)
+  world.removeRigidBody(ent.body)
+  root.remove(ent.mesh)
+  // Shared geo/mat — don't dispose
+  const idx = balls.indexOf(ent)
+  if (idx >= 0) balls.splice(idx, 1)
+}
+
+function getReadyBall(): BallEntity | null {
+  return balls.find((b) => b.ready && !b.inFlight) ?? null
+}
+
+function ensureReadyBall() {
+  if (!getReadyBall()) createBallEntity(true)
+}
+
+function clearAllBalls() {
+  while (balls.length) destroyBall(balls[0]!)
+}
 
 function applyHoopPose(tSec: number) {
   const st = currentStage()
@@ -435,37 +555,56 @@ function applyHoopPose(tSec: number) {
 }
 
 function launchBall(dx: number, dy: number, speedPx: number) {
-  if (state.phase !== 'playing' || shot.inFlight) return
+  if (state.phase !== 'playing') return
+  let ready = getReadyBall()
+  if (!ready) {
+    ready = createBallEntity(true)
+  }
+
+  // Cap in-flight balls
+  const flying = balls.filter((b) => b.inFlight && !b.ready).length
+  if (flying >= MAX_FLIGHT_BALLS) {
+    const oldest = balls.find((b) => b.inFlight && !b.ready)
+    if (oldest) destroyBall(oldest)
+  }
+
   const speed = THREE.MathUtils.clamp(speedPx, MIN_FLICK, MAX_FLICK)
   const power = (speed - MIN_FLICK) / (MAX_FLICK - MIN_FLICK)
+  const lateral = THREE.MathUtils.clamp(dx / 260, -1.0, 1.0)
+  const lift = THREE.MathUtils.clamp(dy / 400, -0.15, 1.35)
 
-  const lateral = THREE.MathUtils.clamp(dx / 280, -1.1, 1.1)
-  const lift = THREE.MathUtils.clamp(dy / 420, -0.2, 1.4)
+  const impulseY = UP_BIAS + lift * 0.8 + power * 0.48
+  const impulseZ = -(FORWARD_BIAS + power * 1.05 + Math.max(0, lift) * 0.2)
+  const impulseX = lateral * (0.48 + power * 0.3)
+  const scale = IMPULSE_SCALE * (0.88 + power * 0.5)
 
-  const impulseY = UP_BIAS + lift * 0.85 + power * 0.55
-  const impulseZ = -(FORWARD_BIAS + power * 1.35 + Math.max(0, lift) * 0.25)
-  const impulseX = lateral * (0.55 + power * 0.35)
-  const scale = IMPULSE_SCALE * (0.85 + power * 0.55)
+  ready.ready = false
+  ready.inFlight = true
+  ready.scored = false
+  ready.touchedRim = false
+  ready.spawnAt = performance.now()
 
-  ballBody.wakeUp()
-  ballBody.setLinvel({ x: 0, y: 0, z: 0 }, true)
-  ballBody.applyImpulse({ x: impulseX * scale, y: impulseY * scale, z: impulseZ * scale }, true)
-  ballBody.applyTorqueImpulse(
-    { x: (Math.random() - 0.5) * 0.015, y: (Math.random() - 0.5) * 0.015, z: (Math.random() - 0.5) * 0.015 },
+  ready.body.wakeUp()
+  ready.body.setTranslation({ x: SHOOT_POS.x, y: SHOOT_POS.y, z: SHOOT_POS.z }, true)
+  ready.body.setLinvel({ x: 0, y: 0, z: 0 }, true)
+  ready.body.setAngvel({ x: 0, y: 0, z: 0 }, true)
+  ready.body.applyImpulse({ x: impulseX * scale, y: impulseY * scale, z: impulseZ * scale }, true)
+  ready.body.applyTorqueImpulse(
+    { x: (Math.random() - 0.5) * 0.012, y: (Math.random() - 0.5) * 0.012, z: (Math.random() - 0.5) * 0.012 },
     true,
   )
-  shot.inFlight = true
-  shot.scored = false
-  shot.touchedRim = false
-  shot.spawnAt = performance.now()
+
+  // Immediately put next ball on the trough
+  ensureReadyBall()
+
   state.banner = ''
   state.bannerKind = ''
   syncHud()
 }
 
-function registerMake(swish: boolean) {
-  if (shot.scored) return
-  shot.scored = true
+function registerMake(ent: BallEntity, swish: boolean) {
+  if (ent.scored) return
+  ent.scored = true
   state.streak += 1
   let pts = swish ? SCORE.swish : SCORE.make
   if (state.streak >= SCORE.streakBonusFrom) pts += SCORE.streakBonusPoints
@@ -475,16 +614,21 @@ function registerMake(swish: boolean) {
   const extra = state.streak > 1 ? ` · streak ${state.streak}` : ''
   flashBanner(label + extra, 'make')
   syncHud()
+  // Remove scored ball shortly after it drops through
+  window.setTimeout(() => {
+    if (balls.includes(ent)) destroyBall(ent)
+  }, 700)
   if (state.stageScore >= currentStage().goal) onStageClear()
-  else window.setTimeout(() => resetBall(), 550)
 }
 
-function registerMiss() {
-  if (shot.scored) return
-  state.streak = 0
-  flashBanner('Miss', 'miss', 900)
-  syncHud()
-  window.setTimeout(() => resetBall(), 400)
+function registerMiss(ent: BallEntity, flash = true) {
+  if (ent.scored) return
+  if (flash) {
+    state.streak = 0
+    flashBanner('Miss', 'miss', 700)
+    syncHud()
+  }
+  if (balls.includes(ent)) destroyBall(ent)
 }
 
 function onStageClear() {
@@ -537,7 +681,8 @@ function startStage(index: number, keepTotal: boolean) {
   state.bannerKind = ''
   if (!keepTotal) state.totalScore = 0
   rebuildHoopColliders(STAGES[index]!.rimRadius)
-  resetBall()
+  clearAllBalls()
+  ensureReadyBall()
   hideOverlay()
   syncHud()
 }
@@ -552,7 +697,7 @@ type PointerTrack = { id: number; x: number; y: number; samples: { x: number; y:
 let track: PointerTrack | null = null
 
 function onPointerDown(e: PointerEvent) {
-  if (state.phase !== 'playing' || shot.inFlight) return
+  if (state.phase !== 'playing') return
   if (!overlayEl.classList.contains('hidden')) return
   canvas.setPointerCapture(e.pointerId)
   track = { id: e.pointerId, x: e.clientX, y: e.clientY, samples: [] }
@@ -569,7 +714,7 @@ function onPointerMove(e: PointerEvent) {
   const dy = track.y - e.clientY
   const len = Math.hypot(dx, dy)
   if (len > 8) {
-    const tip = SHOOT_POS.clone().add(new THREE.Vector3(dx * 0.004, dy * 0.004, -len * 0.003))
+    const tip = SHOOT_POS.clone().add(new THREE.Vector3(dx * 0.0035, dy * 0.0035, -len * 0.0025))
     trailGeo.setFromPoints([SHOOT_POS.clone(), tip])
     trailMat.opacity = 0.55
   }
@@ -588,7 +733,7 @@ function onPointerUp(e: PointerEvent) {
   const dy = a.y - b.y
   const dist = Math.hypot(dx, dy)
   const speed = (dist / dt) * 1000
-  if (dist < 24 || speed < MIN_FLICK * 0.45) return
+  if (dist < 20 || speed < MIN_FLICK * 0.4) return
   if (dy < -40 && Math.abs(dy) > Math.abs(dx) * 1.2) return
   launchBall(dx, Math.max(dy, dist * 0.35), speed)
 }
@@ -605,67 +750,62 @@ addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight
   camera.updateProjectionMatrix()
   renderer.setSize(innerWidth, innerHeight)
+  // Keep fixed arcade POV
+  camera.position.copy(CAM_POS)
+  camera.lookAt(CAM_LOOK)
 })
-
-const camTarget = CAM_POS.clone()
-const lookTarget = CAM_LOOK.clone()
-
-function updateCamera(dt: number) {
-  const hoop = hoopGroup.position
-  const desiredLook = new THREE.Vector3(
-    hoop.x * 0.35,
-    THREE.MathUtils.lerp(CAM_LOOK.y, hoop.y, 0.35),
-    THREE.MathUtils.lerp(CAM_LOOK.z, hoop.z + 0.8, 0.25),
-  )
-  if (shot.inFlight) {
-    const bp = ballMesh.position
-    desiredLook.x = THREE.MathUtils.lerp(desiredLook.x, bp.x * 0.25, 0.4)
-    desiredLook.y = THREE.MathUtils.lerp(desiredLook.y, bp.y * 0.35 + 1.2, 0.35)
-  }
-  lookTarget.lerp(desiredLook, 1 - Math.exp(-4 * dt))
-  camTarget.set(CAM_POS.x + hoop.x * 0.08, CAM_POS.y, CAM_POS.z)
-  camera.position.lerp(camTarget, 1 - Math.exp(-3 * dt))
-  camera.lookAt(lookTarget)
-}
 
 function processEvents() {
   eventQueue.drainCollisionEvents((h1, h2, started) => {
-    if (!started || !shot.inFlight || shot.scored) return
-    const involvesBall = h1 === ballCollider.handle || h2 === ballCollider.handle
-    if (!involvesBall) return
-    const other = h1 === ballCollider.handle ? h2 : h1
-    if (rimHandles.includes(other)) shot.touchedRim = true
+    if (!started) return
+    const b1 = ballByCollider.get(h1)
+    const b2 = ballByCollider.get(h2)
+    const ent = b1 ?? b2
+    if (!ent || !ent.inFlight || ent.scored || ent.ready) return
+    const other = b1 ? h2 : h1
+    if (rimHandles.includes(other)) ent.touchedRim = true
     if (other === sensorHandle) {
-      const v = ballBody.linvel()
-      if (v.y < 0.5) registerMake(!shot.touchedRim)
+      const v = ent.body.linvel()
+      if (v.y < 0.55) registerMake(ent, !ent.touchedRim)
     }
   })
 }
 
-function checkMissOrScoreFallback() {
-  if (!shot.inFlight || shot.scored || state.phase !== 'playing') return
-  const p = ballBody.translation()
-  const v = ballBody.linvel()
-  const age = performance.now() - shot.spawnAt
+function checkBallsFallback() {
+  if (state.phase !== 'playing' && state.phase !== 'cleared' && state.phase !== 'failed') return
+  const now = performance.now()
+  const rimR = currentStage().rimRadius
+  const hx = hoopGroup.position.x
+  const hy = hoopGroup.position.y
+  const hz = hoopGroup.position.z - 0.16
 
-  if (age > 200) {
-    const hx = hoopGroup.position.x
-    const hy = hoopGroup.position.y
-    const hz = hoopGroup.position.z - 0.18
-    const rimR = currentStage().rimRadius
-    const radial = Math.hypot(p.x - hx, p.z - hz)
-    if (v.y < 0 && p.y < hy - 0.02 && p.y > hy - 0.35 && radial < rimR * 0.78) {
-      registerMake(!shot.touchedRim)
-      return
+  // Copy list — we may destroy while iterating
+  for (const ent of [...balls]) {
+    if (ent.ready || !ent.inFlight) continue
+    const p = ent.body.translation()
+    const v = ent.body.linvel()
+    const age = now - ent.spawnAt
+
+    if (!ent.scored && age > 180) {
+      const radial = Math.hypot(p.x - hx, p.z - hz)
+      if (v.y < 0 && p.y < hy - 0.02 && p.y > hy - 0.32 && radial < rimR * 0.75) {
+        registerMake(ent, !ent.touchedRim)
+        continue
+      }
+    }
+
+    if (ent.scored) continue
+    if (age < 600) continue
+    const slow = Math.hypot(v.x, v.y, v.z) < 0.3
+    const onFloor = p.y < BALL_R + 0.12
+    const out = p.z < -3.2 || p.z > 2.2 || Math.abs(p.x) > 1.5 || p.y < -0.4
+    if ((slow && onFloor) || out || age > BALL_TTL_MS) {
+      registerMiss(ent, age > 800 && !out ? true : age > 900)
     }
   }
-
-  if (age < 700) return
-  const slow = Math.hypot(v.x, v.y, v.z) < 0.35
-  const onFloor = p.y < BALL_R + 0.08
-  const out = p.z < -6.2 || p.z > 3.5 || Math.abs(p.x) > 2.4 || p.y < -0.5
-  if ((slow && onFloor) || out || age > 5500) registerMiss()
 }
+
+ensureReadyBall()
 
 let last = performance.now()
 let accum = 0
@@ -679,7 +819,8 @@ function frame(now: number) {
     state.timeLeft -= dt
     if (state.timeLeft <= 0) {
       state.timeLeft = 0
-      if (!shot.inFlight || performance.now() - shot.spawnAt > 1800) onStageFail()
+      const anyRecent = balls.some((b) => b.inFlight && now - b.spawnAt < 1800)
+      if (!anyRecent) onStageFail()
     }
     syncHud()
   }
@@ -697,20 +838,39 @@ function frame(now: number) {
     applyHoopPose(now / 1000)
   }
 
+  // Keep ready ball glued to trough
+  const ready = getReadyBall()
+  if (ready) {
+    ready.body.setTranslation({ x: SHOOT_POS.x, y: SHOOT_POS.y, z: SHOOT_POS.z }, true)
+    ready.body.setLinvel({ x: 0, y: 0, z: 0 }, true)
+    ready.body.setAngvel({ x: 0, y: 0, z: 0 }, true)
+    if (!ready.body.isSleeping()) ready.body.sleep()
+  }
+
   accum += dt
   while (accum >= FIXED) {
     world.step(eventQueue)
     processEvents()
     accum -= FIXED
   }
-  checkMissOrScoreFallback()
+  checkBallsFallback()
 
-  const bp = ballBody.translation()
-  const br = ballBody.rotation()
-  ballMesh.position.set(bp.x, bp.y, bp.z)
-  ballMesh.quaternion.set(br.x, br.y, br.z, br.w)
+  for (const ent of balls) {
+    const bp = ent.body.translation()
+    const br = ent.body.rotation()
+    if (ent.ready) {
+      ent.mesh.position.copy(SHOOT_POS)
+      ent.mesh.quaternion.identity()
+    } else {
+      ent.mesh.position.set(bp.x, bp.y, bp.z)
+      ent.mesh.quaternion.set(br.x, br.y, br.z, br.w)
+    }
+  }
 
-  updateCamera(dt)
+  // Fixed camera — never follow ball or orbit
+  camera.position.copy(CAM_POS)
+  camera.lookAt(CAM_LOOK)
+
   renderer.render(scene, camera)
   requestAnimationFrame(frame)
 }
@@ -719,7 +879,7 @@ syncHud()
 showOverlay({
   eyebrow: 'Arcade',
   title: 'Basketball Machine',
-  body: 'Flick on the canvas to launch the ball. Make baskets before time runs out to clear each stage.',
+  body: 'Flick on the canvas to launch balls. Keep firing — multiple balls in the air. Clear each stage before time runs out.',
   button: 'Start',
   rules: true,
 })
