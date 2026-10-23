@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+    <meta name="theme-color" content="#0b1220" />
+    <title>Draw Wheel Bike — Playground</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="top">
+        <a class="back" href="../../">← Playground</a>
+        <h1>Draw Wheel Bike</h1>
+        <span id="dist" class="dist">0 m</span>
+      </header>
+
+      <canvas id="world"></canvas>
+
+      <div id="banner" class="banner">Draw a wheel, then ride</div>
+
+      <div class="controls">
+        <button type="button" id="btn-brake" class="pad-btn" aria-label="Brake">◀ Brake</button>
+        <button type="button" id="btn-draw" class="pad-btn draw-btn">Draw wheel</button>
+        <button type="button" id="btn-gas" class="pad-btn" aria-label="Accelerate">Gas ▶</button>
+      </div>
+
+      <div id="draw-panel" class="draw-panel hidden" role="dialog" aria-label="Draw wheel">
+        <div class="draw-head">
+          <strong>Draw your wheel</strong>
+          <span class="hint">Freehand · closed silhouette</span>
+        </div>
+        <canvas id="draw-pad" width="320" height="320"></canvas>
+        <div class="draw-actions">
+          <button type="button" id="btn-clear" class="btn ghost">Clear</button>
+          <button type="button" id="btn-cancel" class="btn ghost">Cancel</button>
+          <button type="button" id="btn-apply" class="btn primary">Apply</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
