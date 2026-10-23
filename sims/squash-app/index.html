@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b1220" />
+    <title>Squash Lab — first-person aim &amp; strike</title>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="c"></canvas>
+      <div id="hud">
+        <header class="top">
+          <a class="back" href="../../">← Playground</a>
+          <h1>Squash Lab</h1>
+          <span id="bot-badge" class="badge">vs Farag</span>
+        </header>
+        <div id="banner" class="banner">Warming up…</div>
+        <div id="aim-ui" class="aim-ui hidden">
+          <p class="aim-hint">Drag to aim · hold for power · release to hit</p>
+          <div class="power-wrap">
+            <div class="power-label">Power</div>
+            <div class="power-track"><div id="power-fill" class="power-fill"></div></div>
+          </div>
+        </div>
+        <div id="crosshair" class="crosshair hidden"></div>
+        <div class="bot-bar">
+          <label for="bot-select">Opponent</label>
+          <select id="bot-select"></select>
+          <button type="button" id="btn-serve" class="btn">Serve</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
