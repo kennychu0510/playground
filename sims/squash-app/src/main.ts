@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import RAPIER from '@dimforge/rapier3d-compat'
 import { COURT, serviceBoxCenter, playerEyeForServe, type ServeSide } from './game/court'
 import { store } from './game/store'
-import { BOTS, planReturn } from './game/bots'
+import { planReturn } from './game/bots'
 
 await RAPIER.init()
 
@@ -11,8 +11,6 @@ const canvas = document.querySelector<HTMLCanvasElement>('#c')!
 const bannerEl = document.querySelector<HTMLDivElement>('#banner')!
 const aimUi = document.querySelector<HTMLDivElement>('#aim-ui')!
 const crosshair = document.querySelector<HTMLDivElement>('#crosshair')!
-const botSelect = document.querySelector<HTMLSelectElement>('#bot-select')!
-const botBadge = document.querySelector<HTMLSpanElement>('#bot-badge')!
 const btnServe = document.querySelector<HTMLButtonElement>('#btn-serve')!
 const scoreEl = document.querySelector<HTMLSpanElement>('#score')!
 const serveSideEl = document.querySelector<HTMLSelectElement>('#serve-side')!
@@ -23,20 +21,12 @@ const powerFillEl = document.getElementById('power-fill') as HTMLDivElement
 const btnHit = document.getElementById('btn-hit') as HTMLButtonElement
 const aimHintEl = document.getElementById('aim-hint') as HTMLParagraphElement
 
-for (const b of BOTS) {
-  const opt = document.createElement('option')
-  opt.value = b.id
-  opt.textContent = b.name
-  botSelect.appendChild(opt)
-}
-botSelect.value = store.getState().botId
 serveSideEl.value = store.getState().serveSide
 
 function syncHud() {
   const s = store.getState()
   bannerEl.textContent = s.banner
   bannerEl.classList.toggle('hidden', !s.banner)
-  botBadge.textContent = 'vs ' + s.bot.name
   scoreEl.textContent = s.scorePlayer + ' – ' + s.scoreBot
   const aiming = s.phase === 'serveAim' || s.phase === 'playerAim'
   aimUi.classList.toggle('hidden', !aiming)
@@ -50,8 +40,8 @@ function syncHud() {
   if (aiming) {
     aimHintEl.textContent =
       s.phase === 'serveAim'
-        ? 'Serve from the box · drag aim · set power · Hit (above service line)'
-        : 'Drag to aim · set power · Hit'
+        ? 'Serve · Drag to look · set power · Hit (above service line)'
+        : 'Drag to look · set power · Hit'
   }
 }
 store.subscribe(syncHud)
@@ -87,9 +77,14 @@ scene.add(key)
 const courtGroup = new THREE.Group()
 scene.add(courtGroup)
 
+const WALL_WHITE = 0xffffff
+const TIN_GREY = 0x9aa3b2
+const FLOOR_COL = 0x2a3348
+const LINE_RED = 0xff1a1a
+
 function addWall(w: number, h: number, d: number, x: number, y: number, z: number, color: number, opacity = 1) {
   const mat = new THREE.MeshStandardMaterial({
-    color, roughness: 0.92, metalness: 0.02, transparent: opacity < 1, opacity,
+    color, roughness: 0.88, metalness: 0.02, transparent: opacity < 1, opacity,
   })
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat)
   mesh.position.set(x, y, z)
@@ -103,16 +98,21 @@ const L = COURT.length
 const tin = COURT.tin
 const shortZ = COURT.shortLineZ
 
-addWall(W, 0.08, L, 0, -0.04, L / 2, 0x2a3348)
-addWall(W, COURT.frontHeight - tin, 0.12, 0, tin + (COURT.frontHeight - tin) / 2, 0.06, 0xd8dee9)
-addWall(W, tin, 0.14, 0, tin / 2, 0.07, 0x3a455c)
-addWall(0.12, COURT.sideHeight, L, -W / 2, COURT.sideHeight / 2, L / 2, 0xc5ccd8, 0.9)
-addWall(0.12, COURT.sideHeight, L, W / 2, COURT.sideHeight / 2, L / 2, 0xc5ccd8, 0.9)
-addWall(W, COURT.backHeight, 0.12, 0, COURT.backHeight / 2, L - 0.06, 0xb7c0d0, 0.8)
+// Floor
+addWall(W, 0.08, L, 0, -0.04, L / 2, FLOOR_COL)
+// Front wall (above tin) — white
+addWall(W, COURT.frontHeight - tin, 0.12, 0, tin + (COURT.frontHeight - tin) / 2, 0.06, WALL_WHITE)
+// Tin — darker grey for contrast
+addWall(W, tin, 0.14, 0, tin / 2, 0.07, TIN_GREY)
+// Side walls — white
+addWall(0.12, COURT.sideHeight, L, -W / 2, COURT.sideHeight / 2, L / 2, WALL_WHITE, 0.95)
+addWall(0.12, COURT.sideHeight, L, W / 2, COURT.sideHeight / 2, L / 2, WALL_WHITE, 0.95)
+// Back wall — white
+addWall(W, COURT.backHeight, 0.12, 0, COURT.backHeight / 2, L - 0.06, WALL_WHITE, 0.92)
 
-// Service boxes (floor markers)
-function boxOutline(x0: number, x1: number, z0: number, z1: number, color: number) {
-  const mat = new THREE.LineBasicMaterial({ color })
+// Court lines — bright red
+function boxOutline(x0: number, x1: number, z0: number, z1: number) {
+  const mat = new THREE.LineBasicMaterial({ color: LINE_RED })
   const pts = [
     new THREE.Vector3(x0, 0.02, z0), new THREE.Vector3(x1, 0.02, z0),
     new THREE.Vector3(x1, 0.02, z1), new THREE.Vector3(x0, 0.02, z1),
@@ -120,10 +120,10 @@ function boxOutline(x0: number, x1: number, z0: number, z1: number, color: numbe
   ]
   courtGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat))
 }
-boxOutline(-W / 2, 0, shortZ, L, 0x3ecf8e)
-boxOutline(0, W / 2, shortZ, L, 0xf0b429)
+boxOutline(-W / 2, 0, shortZ, L)
+boxOutline(0, W / 2, shortZ, L)
 
-const lineMat = new THREE.LineBasicMaterial({ color: 0xf0b429 })
+const lineMat = new THREE.LineBasicMaterial({ color: LINE_RED })
 function line(a: THREE.Vector3, b: THREE.Vector3) {
   courtGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), lineMat))
 }
@@ -145,39 +145,83 @@ const aimMarker = new THREE.Mesh(
 aimMarker.visible = false
 scene.add(aimMarker)
 
-// --- Physics: soft bounce, no sky launches ---
+// --- Look (yaw/pitch) — separate from aim ---
+const look = {
+  yaw: 0, // 0 = facing -Z (toward front wall from back)
+  pitch: -0.12,
+}
+const LOOK_SENS = 0.0045
+const PITCH_MIN = -1.15
+const PITCH_MAX = 0.85
+
+function applyLook() {
+  const cy = Math.cos(look.yaw)
+  const sy = Math.sin(look.yaw)
+  const cp = Math.cos(look.pitch)
+  const sp = Math.sin(look.pitch)
+  // Forward in XZ: toward front wall is -Z when yaw=0
+  const fx = -sy * cp
+  const fy = sp
+  const fz = -cy * cp
+  const target = new THREE.Vector3(
+    camera.position.x + fx,
+    camera.position.y + fy,
+    camera.position.z + fz,
+  )
+  camera.lookAt(target)
+}
+
+function lookToward(worldPoint: THREE.Vector3) {
+  const dx = worldPoint.x - camera.position.x
+  const dy = worldPoint.y - camera.position.y
+  const dz = worldPoint.z - camera.position.z
+  look.yaw = Math.atan2(-dx, -dz)
+  const horiz = Math.hypot(dx, dz)
+  look.pitch = Math.atan2(dy, Math.max(0.01, horiz))
+  look.pitch = THREE.MathUtils.clamp(look.pitch, PITCH_MIN, PITCH_MAX)
+  applyLook()
+}
+
+// --- Physics ---
 const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 })
 world.timestep = 1 / 60
+
+const REST_MAX = RAPIER.CoefficientCombineRule.Max
 
 function wallCollider(hx: number, hy: number, hz: number, x: number, y: number, z: number, rest: number, fric: number) {
   const body = world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(x, y, z))
   world.createCollider(
-    RAPIER.ColliderDesc.cuboid(hx, hy, hz).setRestitution(rest).setFriction(fric),
+    RAPIER.ColliderDesc.cuboid(hx, hy, hz)
+      .setRestitution(rest)
+      .setFriction(fric)
+      .setRestitutionCombineRule(REST_MAX),
     body,
   )
 }
 
-// Floor: low restitution so it doesn't rocket upward
-wallCollider(W / 2, 0.04, L / 2, 0, -0.04, L / 2, 0.28, 0.85)
-wallCollider(W / 2, (COURT.frontHeight - tin) / 2, 0.06, 0, tin + (COURT.frontHeight - tin) / 2, 0.06, 0.55, 0.4)
-wallCollider(W / 2, tin / 2, 0.07, 0, tin / 2, 0.07, 0.15, 0.9)
-wallCollider(0.06, COURT.sideHeight / 2, L / 2, -W / 2, COURT.sideHeight / 2, L / 2, 0.5, 0.45)
-wallCollider(0.06, COURT.sideHeight / 2, L / 2, W / 2, COURT.sideHeight / 2, L / 2, 0.5, 0.45)
-wallCollider(W / 2, COURT.backHeight / 2, 0.06, 0, COURT.backHeight / 2, L - 0.06, 0.45, 0.5)
+// Floor: soft so it doesn't rocket upward
+wallCollider(W / 2, 0.04, L / 2, 0, -0.04, L / 2, 0.3, 0.85)
+// Front wall / tin / sides / back — high restitution; Max combine so wall wins over ball
+wallCollider(W / 2, (COURT.frontHeight - tin) / 2, 0.06, 0, tin + (COURT.frontHeight - tin) / 2, 0.06, 0.85, 0.35)
+wallCollider(W / 2, tin / 2, 0.07, 0, tin / 2, 0.07, 0.2, 0.9)
+wallCollider(0.06, COURT.sideHeight / 2, L / 2, -W / 2, COURT.sideHeight / 2, L / 2, 0.8, 0.4)
+wallCollider(0.06, COURT.sideHeight / 2, L / 2, W / 2, COURT.sideHeight / 2, L / 2, 0.8, 0.4)
+wallCollider(W / 2, COURT.backHeight / 2, 0.06, 0, COURT.backHeight / 2, L - 0.06, 0.75, 0.45)
 
 const ballBody = world.createRigidBody(
   RAPIER.RigidBodyDesc.dynamic()
     .setTranslation(0, 1.2, L - 2)
-    .setLinearDamping(0.35)
-    .setAngularDamping(0.4)
+    .setLinearDamping(0.28)
+    .setAngularDamping(0.35)
     .setCcdEnabled(true)
     .setCanSleep(true),
 )
 const ballCollider = world.createCollider(
   RAPIER.ColliderDesc.ball(COURT.ballRadius)
-    .setRestitution(0.35)
-    .setFriction(0.55)
-    .setDensity(120),
+    .setRestitution(0.65)
+    .setFriction(0.5)
+    .setDensity(120)
+    .setRestitutionCombineRule(REST_MAX),
   ballBody,
 )
 
@@ -188,38 +232,59 @@ function resetBall(x: number, y: number, z: number) {
   ballBody.sleep()
 }
 
-/** Clamp restitution & kill crazy upward speed after floor hits. */
+/** Keep ball restitution stable; only tame crazy floor launches. */
 function tameBall() {
-  const v = ballBody.linvel()
-  const speed = Math.hypot(v.x, v.y, v.z)
-  // Softer bounce at higher speed (squash-like)
-  const e = Math.max(0.18, Math.min(0.42, 0.4 - 0.006 * Math.min(speed, 30)))
-  ballCollider.setRestitution(e)
+  // Keep wall-friendly restitution (Max combine uses wall when higher)
+  ballCollider.setRestitution(0.65)
 
+  const v = ballBody.linvel()
   const t = ballBody.translation()
   // Near floor: never allow huge upward rebound
-  if (t.y < COURT.ballRadius + 0.08 && v.y > 4.5) {
-    ballBody.setLinvel({ x: v.x * 0.85, y: Math.min(v.y, 2.2), z: v.z * 0.85 }, true)
+  if (t.y < COURT.ballRadius + 0.1 && v.y > 3.5) {
+    ballBody.setLinvel({ x: v.x * 0.9, y: Math.min(v.y, 2.0), z: v.z * 0.9 }, true)
   }
-  // Hard ceiling clamp (safety)
-  if (v.y > 12) {
-    ballBody.setLinvel({ x: v.x, y: 8, z: v.z }, true)
+  if (v.y > 11) {
+    ballBody.setLinvel({ x: v.x, y: 7, z: v.z }, true)
   }
-  if (t.y > COURT.frontHeight + 0.5) {
+  if (t.y > COURT.frontHeight + 0.4) {
     ballBody.setLinvel({ x: v.x * 0.5, y: -Math.abs(v.y) * 0.3, z: v.z * 0.5 }, true)
   }
 }
 
-// --- Aim ---
-const aim = { nx: 0.55, ny: 0.42 }
+// Front-wall plane for aim (inner face ~ z = 0.12)
+const FRONT_AIM_Z = 0.12
 
-function aimWorldTarget() {
-  const x = (aim.nx - 0.5) * (W - 0.5)
-  let y = tin + 0.25 + aim.ny * (COURT.frontHeight - tin - 0.55)
-  if (store.getState().phase === 'serveAim') {
-    y = Math.max(y, COURT.serviceLineY + 0.05)
+function aimWorldTarget(): THREE.Vector3 {
+  // Ray from camera through screen center
+  const ndc = new THREE.Vector2(0, 0)
+  const ray = new THREE.Raycaster()
+  ray.setFromCamera(ndc, camera)
+  const origin = ray.ray.origin
+  const dir = ray.ray.direction.clone()
+  // Intersect plane z = FRONT_AIM_Z
+  let hit: THREE.Vector3
+  if (Math.abs(dir.z) < 1e-5) {
+    hit = new THREE.Vector3(0, 1.5, FRONT_AIM_Z)
+  } else {
+    const t = (FRONT_AIM_Z - origin.z) / dir.z
+    if (t < 0.05) {
+      // Looking away from front — fall back along look forward projected
+      hit = new THREE.Vector3(
+        camera.position.x - Math.sin(look.yaw) * 4,
+        camera.position.y + Math.sin(look.pitch) * 2,
+        FRONT_AIM_Z,
+      )
+    } else {
+      hit = origin.clone().addScaledVector(dir, t)
+    }
   }
-  return new THREE.Vector3(x, y, 0.12)
+  const margin = 0.25
+  hit.x = THREE.MathUtils.clamp(hit.x, -W / 2 + margin, W / 2 - margin)
+  const yMin = store.getState().phase === 'serveAim' ? COURT.serviceLineY + 0.05 : tin + 0.2
+  const yMax = COURT.frontHeight - 0.25
+  hit.y = THREE.MathUtils.clamp(hit.y, yMin, yMax)
+  hit.z = FRONT_AIM_Z
+  return hit
 }
 
 function updateAimMarker() {
@@ -231,10 +296,17 @@ function updateAimMarker() {
 function setCameraServe(side: ServeSide) {
   const eye = playerEyeForServe(side)
   camera.position.set(eye.x, eye.y, eye.z)
-  camera.lookAt(0, 1.45, 0)
+  // Default look toward opposite front quarter above service line
+  const tx = side === 'right' ? -W * 0.22 : W * 0.22
+  lookToward(new THREE.Vector3(tx, COURT.serviceLineY + 0.35, FRONT_AIM_Z))
 }
 
+let lookingDrag = false
+let lastPx = 0
+let lastPy = 0
+
 function setCameraRally() {
+  if (lookingDrag) return // user is looking around — don't overwrite
   const t = ballBody.translation()
   const desired = new THREE.Vector3(
     THREE.MathUtils.clamp(t.x * 0.25, -1.4, 1.4),
@@ -242,7 +314,7 @@ function setCameraRally() {
     THREE.MathUtils.clamp(t.z + 1.6, shortZ + 0.2, L - 0.55),
   )
   camera.position.lerp(desired, 0.08)
-  camera.lookAt(t.x * 0.4, Math.max(0.9, t.y), t.z)
+  lookToward(new THREE.Vector3(t.x * 0.4, Math.max(0.9, t.y), t.z))
 }
 
 let isServing = false
@@ -266,7 +338,7 @@ function enterAim(kind: 'serveAim' | 'playerAim') {
       1.55,
       Math.min(L - 0.5, Math.max(shortZ + 0.4, t.z + 0.5)),
     )
-    camera.lookAt(0, 1.35, 0)
+    lookToward(new THREE.Vector3(0, 1.35, FRONT_AIM_Z))
   }
   updateAimMarker()
   syncHud()
@@ -281,8 +353,7 @@ function doHit() {
   const dir = new THREE.Vector3(target.x - from.x, target.y - from.y, target.z - from.z)
   if (dir.lengthSq() < 1e-6) dir.set(0, 0.2, -1)
   dir.normalize()
-  // Cap launch speed so floor bounce stays tame
-  const speed = 7 + power * 16 // ~7–23 m/s
+  const speed = 7 + power * 16
   ballBody.wakeUp()
   ballBody.setLinvel({ x: dir.x * speed, y: dir.y * speed, z: dir.z * speed }, true)
   aimMarker.visible = false
@@ -316,45 +387,59 @@ function serve() {
   frozenBot = false
   hitFrontOnServe = false
   setCameraServe(side)
-  // Default aim toward opposite front quarter above service line
-  aim.nx = side === 'right' ? 0.28 : 0.72
-  aim.ny = 0.5
   enterAim('serveAim')
 }
 
 btnServe.addEventListener('click', () => serve())
-botSelect.addEventListener('change', () => {
-  store.getState().setBot(botSelect.value)
-  store.getState().setBanner(store.getState().bot.name + ' — ' + store.getState().bot.blurb)
-})
+
+/** Immediately preview the selected service box (no Serve click needed). */
+function applyServeSide(side: ServeSide) {
+  store.getState().setServeSide(side)
+  const phase = store.getState().phase
+  const preview =
+    phase === 'idle' || phase === 'pointOver' || phase === 'serveAim'
+  if (!preview) return
+
+  const box = serviceBoxCenter(side)
+  resetBall(box.x, box.y, box.z)
+  isServing = true
+  pendingBot = false
+  armPlayer = false
+  frozenBot = false
+  hitFrontOnServe = false
+  setCameraServe(side) // resets look toward front for that side
+  enterAim('serveAim')
+}
+
 serveSideEl.addEventListener('change', () => {
-  store.getState().setServeSide(serveSideEl.value as ServeSide)
+  applyServeSide(serveSideEl.value as ServeSide)
 })
 
-// Drag = aim only (no charge)
-let dragging = false
+// Drag on canvas = LOOK AROUND only (yaw/pitch)
 canvas.addEventListener('pointerdown', (e) => {
-  const p = store.getState().phase
-  if (p !== 'serveAim' && p !== 'playerAim') return
-  dragging = true
+  lookingDrag = true
+  lastPx = e.clientX
+  lastPy = e.clientY
   canvas.setPointerCapture(e.pointerId)
-  aim.nx = Math.min(0.92, Math.max(0.08, e.clientX / innerWidth))
-  aim.ny = Math.min(0.88, Math.max(0.08, 1 - e.clientY / innerHeight))
-  updateAimMarker()
 })
 canvas.addEventListener('pointermove', (e) => {
-  if (!dragging) return
+  if (!lookingDrag) return
+  const dx = e.clientX - lastPx
+  const dy = e.clientY - lastPy
+  lastPx = e.clientX
+  lastPy = e.clientY
+  look.yaw -= dx * LOOK_SENS
+  look.pitch -= dy * LOOK_SENS
+  look.pitch = THREE.MathUtils.clamp(look.pitch, PITCH_MIN, PITCH_MAX)
+  applyLook()
   const p = store.getState().phase
-  if (p !== 'serveAim' && p !== 'playerAim') return
-  aim.nx = Math.min(0.92, Math.max(0.08, e.clientX / innerWidth))
-  aim.ny = Math.min(0.88, Math.max(0.08, 1 - e.clientY / innerHeight))
-  updateAimMarker()
+  if (p === 'serveAim' || p === 'playerAim') updateAimMarker()
 })
 canvas.addEventListener('pointerup', (e) => {
-  dragging = false
+  lookingDrag = false
   try { canvas.releasePointerCapture(e.pointerId) } catch { /* */ }
 })
-canvas.addEventListener('pointercancel', () => { dragging = false })
+canvas.addEventListener('pointercancel', () => { lookingDrag = false })
 
 function endPoint(msg: string, toBot: boolean) {
   store.getState().setPhase('pointOver')
@@ -382,7 +467,6 @@ function checkPoint() {
     endPoint('Tin!', true)
     return
   }
-  // Serve must hit front wall first
   if (isServing && t.z < 0.35 && t.y >= tin) {
     hitFrontOnServe = true
     isServing = false
@@ -458,6 +542,8 @@ function frame(now: number) {
   const phase = store.getState().phase
 
   if (phase === 'serveAim' || phase === 'playerAim') {
+    // Aim phases: do NOT auto-overwrite look from rally follow
+    applyLook()
     updateAimMarker()
   } else if (phase === 'rally' || phase === 'botTelegraph') {
     if (phase === 'rally') {
@@ -469,9 +555,13 @@ function frame(now: number) {
       }
       checkPoint()
       setCameraRally()
+    } else {
+      applyLook()
     }
     tryBot(dt)
     maybePlayerAim()
+  } else {
+    applyLook()
   }
 
   const bt = ballBody.translation()
@@ -482,5 +572,5 @@ function frame(now: number) {
 
 setCameraServe('right')
 store.getState().setPhase('idle')
-store.getState().setBanner('Pick opponent · choose L/R box · Serve')
+store.getState().setBanner('Choose L/R box · Serve')
 requestAnimationFrame(frame)

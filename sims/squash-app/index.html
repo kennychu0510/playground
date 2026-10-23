@@ -14,11 +14,10 @@
           <a class="back" href="../../">← Playground</a>
           <h1>Squash Lab</h1>
           <span id="score" class="score">0 – 0</span>
-          <span id="bot-badge" class="badge">vs Farag</span>
         </header>
-        <div id="banner" class="banner">Pick opponent · tap Serve</div>
+        <div id="banner" class="banner">Choose L/R box · Serve</div>
         <div id="aim-ui" class="aim-ui hidden">
-          <p id="aim-hint" class="aim-hint">1) Drag to aim · 2) Set power · 3) Hit</p>
+          <p id="aim-hint" class="aim-hint">Drag to look · set power · Hit</p>
           <div class="power-wrap">
             <div class="power-label">Power <span id="power-val">55%</span></div>
             <input id="power-slider" type="range" min="15" max="100" step="1" value="55" />
@@ -28,8 +27,6 @@
         </div>
         <div id="crosshair" class="crosshair hidden"></div>
         <div class="bot-bar">
-          <label for="bot-select">Opp</label>
-          <select id="bot-select" aria-label="Opponent"></select>
           <select id="serve-side" aria-label="Serve side">
             <option value="right">Serve R</option>
             <option value="left">Serve L</option>

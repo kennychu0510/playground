@@ -34,7 +34,7 @@ export const store = createStore<GameStore>((set) => ({
   botId: 'farag',
   bot: getBot('farag'),
   power: 0,
-  banner: 'Pick opponent · tap Serve',
+  banner: 'Choose L/R box · Serve',
   serveSide: 'right',
   scorePlayer: 0,
   scoreBot: 0,
