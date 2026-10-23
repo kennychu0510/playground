@@ -22,6 +22,10 @@
   let sim = P.initialState();
   let lastResult = null;
   let raf = 0;
+  let previewRaf = 0;
+  let previewX = 5;
+  let previewV = 0;
+  let previewLastTs = 0;
   let lastTs = 0;
   let paddleTrail = [];
   /** @type {{t:number,v:number,x:number}[]} */
@@ -210,11 +214,19 @@
     els.runControls.classList.toggle("active", state === S.RUN);
     els.graphWrap.classList.toggle("active", state === S.RUN || state === S.RESULT);
     els.graphWrap.setAttribute("aria-hidden", state === S.RUN || state === S.RESULT ? "false" : "true");
+    if (els.stageWrap) {
+      els.stageWrap.classList.toggle("racing", state === S.RUN || state === S.RESULT);
+    }
     updatePauseLabel();
 
     if (state !== S.RUN && raf) {
       cancelAnimationFrame(raf);
       raf = 0;
+    }
+    if (state === S.EDIT || state === S.INTRO) {
+      startPreviewLoop();
+    } else {
+      stopPreviewLoop();
     }
     // Re-measure after dock show/hide
     requestAnimationFrame(function () {
@@ -250,8 +262,10 @@
   function updateEstimate() {
     const r = P.simulate(params, { dt: 1 / 45, maxT: 90 });
     if (!r.finished) {
+      previewV = Math.max(0.8, previewV || 1.5);
       els.est.textContent = "est. > 90 s / 100 m";
     } else {
+      previewV = r.avgSpeed;
       els.est.textContent =
         "est. " +
         r.time.toFixed(1) +
@@ -423,14 +437,20 @@
       bladeY = 0.15 + 0.35 * Math.sin(Math.PI * airProgress);
     }
 
-    // Shaft tilt: at catch use insert angle; through drive ease toward vertical
+    // Shaft tilt from vertical: 0° = upright, 45° = tip toward bow (+x).
+    // Catch holds full insert angle; drive eases toward vertical; exit nearly upright.
     let tilt = ang;
-    if (stage.name === "drive") tilt = ang * (1 - 0.75 * stage.local);
-    else if (stage.name === "exit") tilt = ang * 0.15;
-    else if (stage.name === "recovery" || stage.name === "reach") tilt = ang * 0.5;
+    if (stage.name === "catch") tilt = ang;
+    else if (stage.name === "drive") tilt = ang * (1 - 0.85 * stage.local);
+    else if (stage.name === "exit") tilt = ang * 0.12 * (1 - stage.local);
+    else if (stage.name === "reach") tilt = ang * (0.35 + 0.65 * stage.local);
+    else tilt = ang * 0.35; // recovery
 
-    const topX = bladeX + Math.sin(tilt) * 0.15;
-    const topY = bladeY + Math.cos(tilt) * (0.75 + depth * 0.2);
+    const shaftLen = 0.95 + depth * 0.35;
+    // Blade tip is in water; shaft goes up-and-aft (toward stern / -x) when catch is forward.
+    // Positive catch: tip toward bow (+x), so handle is aft of tip → topX = bladeX - sin(tilt)*L
+    const topX = bladeX - Math.sin(tilt) * shaftLen;
+    const topY = bladeY + Math.cos(tilt) * shaftLen;
 
     return {
       seatX: seatX,
@@ -458,7 +478,7 @@
     ctx.clearRect(0, 0, W, H);
 
     const isPreview = state === S.EDIT || state === S.INTRO;
-    const boatX = isPreview ? 5 : sim.x || 0;
+    const boatX = isPreview ? previewX : sim.x || 0;
     const camX = boatX - 4.5;
 
     drawSky(ctx);
@@ -469,8 +489,8 @@
     const drawSim = isPreview
       ? {
           x: boatX,
-          v: 0,
-          t: 0,
+          v: previewV > 0.05 ? previewV : 1.8,
+          t: performance.now() / 1000,
           phaseTime: previewPhase(),
           kin: P.strokeKinematics(params),
         }
@@ -480,6 +500,7 @@
 
     if (state === S.EDIT || state === S.INTRO) {
       drawStrokeGhost(ctx, camX, drawSim);
+      drawAngleGuide(ctx, camX, drawSim);
     } else {
       drawTrail(ctx, camX);
     }
@@ -500,7 +521,7 @@
 
   function drawSpeedOnCanvas(ctx) {
     const isPreview = state === S.EDIT || state === S.INTRO;
-    const v = isPreview ? 0 : sim.v || 0;
+    const v = isPreview ? (previewV > 0.05 ? previewV : 1.8) : sim.v || 0;
     const label = v.toFixed(2) + " m/s";
     const pad = 12;
     const boxH = 44;
@@ -536,8 +557,36 @@
     ctx.closePath();
   }
 
+  function startPreviewLoop() {
+    if (previewRaf) return;
+    previewLastTs = 0;
+    previewRaf = requestAnimationFrame(previewLoop);
+  }
+
+  function stopPreviewLoop() {
+    if (previewRaf) {
+      cancelAnimationFrame(previewRaf);
+      previewRaf = 0;
+    }
+    previewLastTs = 0;
+  }
+
+  function previewLoop(ts) {
+    previewRaf = 0;
+    if (state !== S.EDIT && state !== S.INTRO) return;
+    if (!previewLastTs) previewLastTs = ts;
+    const dt = Math.min(0.05, (ts - previewLastTs) / 1000);
+    previewLastTs = ts;
+    const v = previewV > 0.05 ? previewV : 1.8;
+    previewX += v * dt;
+    // Loop scenery every ~40 m so markers keep scrolling
+    if (previewX > 80) previewX = 5;
+    draw();
+    previewRaf = requestAnimationFrame(previewLoop);
+  }
+
   function previewPhase() {
-    return (performance.now() / 1000) % (60 / params.spm);
+    return (performance.now() / 1000) % (60 / Math.max(30, params.spm));
   }
 
   function worldToScreen(camX, wx, wy) {
@@ -774,13 +823,66 @@
     );
   }
 
+
+  /** Clear catch-angle diagram: vertical reference + blade at insert angle. */
+  function drawAngleGuide(ctx, camX, s) {
+    const pose = paddlePose(s, 0);
+    const scale = W / 14;
+    const waterY = H * 0.55;
+    const tipX = (s.x + pose.bladeX - camX) * scale;
+    const tipY = waterY - pose.bladeY * scale;
+    const ang = (params.angleDeg * Math.PI) / 180;
+    const len = Math.min(H * 0.22, 110);
+
+    ctx.save();
+    // Vertical reference (0°)
+    ctx.strokeStyle = "rgba(139, 155, 184, 0.55)";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 4]);
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(tipX, tipY - len);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Blade shaft at insert angle (handle aft / left of tip when catch is forward)
+    const hx = tipX - Math.sin(ang) * len;
+    const hy = tipY - Math.cos(ang) * len;
+    ctx.strokeStyle = "#3ecf8e";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(hx, hy);
+    ctx.stroke();
+
+    // Arc between vertical and shaft
+    ctx.strokeStyle = "rgba(240, 180, 41, 0.9)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    const arcR = len * 0.42;
+    ctx.arc(tipX, tipY, arcR, -Math.PI / 2, -Math.PI / 2 - ang, true);
+    ctx.stroke();
+
+    ctx.fillStyle = "#f0b429";
+    ctx.font = "700 13px system-ui, sans-serif";
+    ctx.textAlign = "left";
+    const labelX = tipX + 10;
+    const labelY = tipY - arcR - 8;
+    ctx.fillText(Math.round(params.angleDeg) + "° insert", labelX, labelY);
+    ctx.fillStyle = "rgba(139, 155, 184, 0.9)";
+    ctx.font = "600 10px system-ui, sans-serif";
+    ctx.fillText("0° vertical", tipX + 6, tipY - len - 6);
+    ctx.restore();
+  }
+
   function drawDistanceBar(ctx) {
     if (state !== S.RUN && state !== S.RESULT) return;
     const x = Math.min(sim.x, P.RACE_DISTANCE_M);
     const pct = x / P.RACE_DISTANCE_M;
     const barW = W - 40;
     const bx = 20;
-    const by = H - 18;
+    // Stay clear of bottom Pause/Restart bar (+ graph when racing)
+    const by = H - (state === S.RUN ? 58 : 28);
     ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.fillRect(bx, by, barW, 8);
     ctx.fillStyle = "#3ecf8e";

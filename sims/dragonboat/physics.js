@@ -474,7 +474,7 @@
       angleDeg: 35,
       spm: 72,
       effort: 1.0,
-      crewSize: 20,
+      crewSize: 5,
       syncPct: 85,
       paceVariance: 0.15,
     };

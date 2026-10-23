@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b1220" />
   <title>Dragonboat Lab — paddle stroke sandbox</title>
-  <link rel="stylesheet" href="style.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=5" />
 </head>
 <body>
   <div id="app">
@@ -28,13 +28,13 @@
         </div>
       </div>
 
-      <div id="run-controls" class="run-controls" aria-label="Race controls">
-        <button type="button" class="btn tiny" id="btn-pause">Pause</button>
-        <button type="button" class="btn tiny secondary" id="btn-restart">Restart</button>
-      </div>
-
       <div id="graph-wrap" aria-hidden="true">
         <canvas id="graph" width="540" height="110" aria-label="Live speed and pace graph"></canvas>
+      </div>
+
+      <div id="run-controls" class="run-controls" aria-label="Race controls">
+        <button type="button" class="btn tiny secondary" id="btn-restart">Restart</button>
+        <button type="button" class="btn tiny" id="btn-pause">Pause</button>
       </div>
 
       <!-- INTRO -->
@@ -112,8 +112,8 @@
       </div>
       <div class="slider-row">
         <label><span class="name">Crew size</span> — paddlers (2D unison row)</label>
-        <span class="val" id="val-crew">20</span>
-        <input id="sl-crew" type="range" min="2" max="20" step="1" value="20" />
+        <span class="val" id="val-crew">5</span>
+        <input id="sl-crew" type="range" min="2" max="20" step="1" value="5" />
       </div>
       <div class="slider-row">
         <label><span class="name">Sync quality</span> — 100% = perfect timing</label>
@@ -133,7 +133,7 @@
     </div>
   </div>
 
-  <script src="physics.js?v=4"></script>
-  <script src="game.js?v=4"></script>
+  <script src="physics.js?v=5"></script>
+  <script src="game.js?v=5"></script>
 </body>
 </html>
