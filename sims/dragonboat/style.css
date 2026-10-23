@@ -117,49 +117,22 @@ canvas#scene {
   transform: translateZ(0);
 }
 
-/* Live graph strip — overlays bottom of stage while racing / result */
+/* Live graph lives in #race-dock (not over the canvas) */
 #graph-wrap {
   display: none;
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 10px;
-  z-index: 3;
-  pointer-events: none;
+  position: relative;
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid var(--border);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  background: rgba(7, 16, 28, 0.9);
 }
 
 #graph-wrap.active { display: block; }
 
-/* Keep race buttons above the live graph strip (class set from JS) */
-#stage-wrap.racing .run-controls.active {
-  bottom: calc(102px + var(--safe-bottom));
-}
-
-@media (max-height: 700px) {
-  #stage-wrap.racing .run-controls.active {
-    bottom: calc(84px + var(--safe-bottom));
-  }
-}
-
-@media (max-height: 560px) {
-  #stage-wrap.racing .run-controls.active {
-    bottom: calc(76px + var(--safe-bottom));
-  }
-  .run-controls .btn,
-  .run-controls .btn.tiny {
-    padding: 10px 12px;
-    font-size: 0.85rem;
-  }
-}
-
 canvas#graph {
   display: block;
   width: 100%;
-  height: 90px;
+  height: 72px;
   background: transparent;
 }
 
@@ -235,26 +208,20 @@ canvas#graph {
   pointer-events: auto;
 }
 
-/* Pause / Restart while paddling — bottom thumb bar */
+/* Pause / Restart — in race dock, not floating on canvas */
 .run-controls {
   display: none;
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: calc(12px + var(--safe-bottom));
-  z-index: 6;
+  position: relative;
   gap: 10px;
-  pointer-events: none;
   align-items: stretch;
   justify-content: stretch;
+  pointer-events: auto;
 }
 
 .run-controls.active {
   display: flex;
-  pointer-events: none;
 }
 .run-controls .btn {
-  pointer-events: auto;
   flex: 1;
   width: auto;
   margin: 0;
@@ -262,17 +229,13 @@ canvas#graph {
   font-size: 0.9rem;
   font-weight: 700;
   border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 .run-controls .btn.tiny {
-  /* override generic tiny so race buttons stay large enough to tap */
   padding: 12px 14px;
   font-size: 0.9rem;
 }
 .run-controls .btn.secondary {
-  background: rgba(18, 26, 43, 0.88);
+  background: rgba(18, 26, 43, 0.95);
   color: var(--ink);
   border: 1px solid var(--border);
 }
@@ -337,25 +300,38 @@ canvas#graph {
 
 #edit-actions .btn { margin-top: 0; flex: 1; }
 
-/* HUD during run */
-#hud {
+/* Race dock: stacked under canvas (HUD → graph → buttons) */
+#race-dock {
   display: none;
-  position: absolute;
-  top: 10px;
-  left: 12px;
-  right: 12px;
-  z-index: 4;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px calc(12px + var(--safe-bottom));
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  z-index: 3;
+}
+
+#race-dock.active { display: flex; }
+
+/* Compact header while racing to free vertical space */
+#app.racing header.top {
+  padding: 8px 12px 4px;
+}
+#app.racing header.top .badge { display: none; }
+
+#hud {
+  display: block;
+  position: relative;
   pointer-events: none;
   font-variant-numeric: tabular-nums;
 }
-
-#hud.active { display: block; }
 
 #hud .row {
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  background: rgba(7, 12, 22, 0.7);
+  background: rgba(7, 12, 22, 0.55);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 8px 12px;
@@ -414,7 +390,7 @@ canvas#graph {
 @media (max-height: 700px) {
   #edit-dock { max-height: min(38vh, 300px); }
   #stage-wrap { min-height: 200px; flex-basis: 48vh; }
-  canvas#graph { height: 64px; }
+  canvas#graph { height: 56px; }
 }
 
 @media (max-height: 560px) {
@@ -423,3 +399,103 @@ canvas#graph {
   header.top { padding: 8px 12px 4px; }
   header.top h1 { font-size: 0.95rem; }
 }
+
+.impact-panel {
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: rgba(7, 12, 22, 0.55);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--muted);
+}
+.impact-panel .impact-title {
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.78rem;
+  margin-bottom: 6px;
+}
+.impact-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+  align-items: center;
+  padding: 3px 0;
+}
+.impact-row .bar {
+  grid-column: 1 / -1;
+  height: 5px;
+  border-radius: 999px;
+  background: #1a2438;
+  overflow: hidden;
+}
+.impact-row .bar > i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+  border-radius: 999px;
+}
+.impact-row .delta { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+.impact-row .hint-dir { color: var(--warn); }
+#edit-actions { flex-wrap: wrap; }
+#edit-actions .btn { min-width: 30%; }
+
+.crew-panel {
+  margin: 6px 0 4px;
+  padding: 8px 10px;
+  background: rgba(7, 12, 22, 0.45);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.crew-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+.crew-head .name {
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--ink);
+}
+.crew-sub {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+.crew-seats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.seat-row {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 8px;
+  align-items: center;
+}
+.seat-row .seat-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+.seat-row .seat-label strong {
+  color: var(--ink);
+  display: block;
+  font-size: 0.78rem;
+}
+.seat-row select {
+  width: 100%;
+  appearance: none;
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.seat-row select.skill-beginner { border-color: #ef6b6b; }
+.seat-row select.skill-amateur { border-color: #f0b429; }
+.seat-row select.skill-advanced { border-color: #3ecf8e; }

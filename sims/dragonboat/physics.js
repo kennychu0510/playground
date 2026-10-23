@@ -29,9 +29,10 @@
  *
  * Multi-paddler (2D side view only)
  * ---------------------------------
- * Crew 2–20. Mass scales with crew. Instantaneous thrust = sum over
- * paddlers. Sync quality spreads phase offsets (jitter). We do NOT model
- * left vs right sides separately — one unison row in side view.
+ * Crew fixed at 5 seats (stern → bow). Each seat has a skill
+ * (beginner / amateur / advanced) that scales effort, timing lag,
+ * effective depth, and SPM. Instantaneous thrust = sum over seats.
+ * Global sync still adds caterpillar jitter. No L/R sides.
  *
  * Integration: semi-implicit Euler, fixed dt (usually 1/60 s).
  */
@@ -198,10 +199,70 @@
       angleDeg: clamp(params.angleDeg, 0, 45),
       spm: clamp(params.spm, 30, 100),
       effort: clamp(params.effort ?? 1, 0.5, 1.25),
-      crewSize: clamp(Math.round(params.crewSize ?? 20), 2, 20),
+      crewSize: 5,
       syncPct: clamp(params.syncPct ?? 85, 0, 100),
       paceVariance: clamp(params.paceVariance ?? 0.15, 0, 1),
+      // Target 100 m time (s) for UI pacing — physics race is still free effort
+      targetPaceS: clamp(params.targetPaceS ?? 28, 18, 70),
+      paddlers: normalizePaddlers(params.paddlers),
     };
+  }
+
+  const CREW_SIZE = 5;
+  const SKILL_PRESETS = {
+    beginner: {
+      id: "beginner",
+      label: "Beginner",
+      effortMul: 0.52,
+      phaseLag: 0.14, // fraction of cycle late vs lead
+      spmMul: 0.9,
+      depthMul: 0.65,
+      angleNudge: -12, // more upright / weaker catch
+    },
+    amateur: {
+      id: "amateur",
+      label: "Amateur",
+      effortMul: 0.82,
+      phaseLag: 0.045,
+      spmMul: 0.98,
+      depthMul: 0.9,
+      angleNudge: -4,
+    },
+    advanced: {
+      id: "advanced",
+      label: "Advanced",
+      effortMul: 1.0,
+      phaseLag: 0,
+      spmMul: 1.0,
+      depthMul: 1.0,
+      angleNudge: 0,
+    },
+  };
+
+  function skillPreset(id) {
+    return SKILL_PRESETS[id] || SKILL_PRESETS.amateur;
+  }
+
+  /** Stern (0) → bow (4). Default: beginner behind amateur. */
+  function defaultPaddlers() {
+    return [
+      { skill: "beginner" },
+      { skill: "amateur" },
+      { skill: "amateur" },
+      { skill: "amateur" },
+      { skill: "advanced" },
+    ];
+  }
+
+  function normalizePaddlers(list) {
+    const base = defaultPaddlers();
+    const out = [];
+    for (let i = 0; i < CREW_SIZE; i++) {
+      const src = (list && list[i]) || base[i];
+      const skill = SKILL_PRESETS[src.skill] ? src.skill : "amateur";
+      out.push({ skill: skill });
+    }
+    return out;
   }
 
   /** Deterministic paddler offset in [0,1) from index + sync. */
@@ -261,12 +322,13 @@
    * Thrust (N) for one blade given unit cycle phase u ∈ [0,1) and that
    * paddler's effective SPM (for pull speed / phase shape).
    */
-  function thrustAtPhase(params, boatSpeed, u, spm) {
+  function thrustAtPhase(params, boatSpeed, u, spm, seat) {
+    const skill = skillPreset(seat && seat.skill);
     const ph = phaseFractions(spm);
     const stage = phaseAt(u, ph);
-    const A = effectiveArea(params.depthM);
-    const eta = angleEfficiency(params.angleDeg);
-    const effort = params.effort;
+    const A = effectiveArea(params.depthM * skill.depthMul);
+    const eta = angleEfficiency(clamp(params.angleDeg + skill.angleNudge, 0, 45));
+    const effort = params.effort * skill.effortMul;
     const wf = waterFractionFromPhases(ph);
     const waterT = wf * (60 / spm);
     const pullSpeed = params.strokeLengthM / Math.max(waterT, 1e-3);
@@ -353,33 +415,37 @@
     let impulseThrust = state.impulseThrust;
     let impulseDrag = state.impulseDrag;
 
-    const n = params.crewSize;
+    const n = CREW_SIZE;
+    const seats = params.paddlers || defaultPaddlers();
     let Fthrust = 0;
     let anyInWater = false;
 
     for (let i = 0; i < n; i++) {
-      const spm_i = paddlerSpm(params, i);
-      const cycleT_i = 60 / spm_i;
-      const offset = paddlerPhaseOffset(i, n, params.syncPct);
+      const seat = seats[i] || { skill: "amateur" };
+      const skill = skillPreset(seat.skill);
+      const spm_i = paddlerSpm(params, i) * skill.spmMul;
+      const cycleT_i = 60 / Math.max(spm_i, 20);
+      const offset =
+        paddlerPhaseOffset(i, n, params.syncPct) + skill.phaseLag;
       // Lead clock in seconds → this paddler's unit phase
-      const u = (phaseTime / cycleT_i + offset) % 1;
+      const u = (((phaseTime / cycleT_i + offset) % 1) + 1) % 1;
       const ph = phaseFractions(spm_i);
       const stage = phaseAt(u, ph);
       if (stage.name === "catch" || stage.name === "drive" || stage.name === "exit") {
         anyInWater = true;
       }
-      Fthrust += thrustAtPhase(params, v, u, spm_i);
+      Fthrust += thrustAtPhase(params, v, u, spm_i, seat);
     }
 
     // Sync tax: caterpillaring reduces useful net surge
     Fthrust *= syncEfficiency(params.syncPct);
 
-    const Fdrag = hullDragNewtons(v, n);
+    const Fdrag = hullDragNewtons(v, CREW_SIZE);
     // Slight extra wash drag when badly out of time
     const sync = params.syncPct / 100;
     const FdragAdj = Fdrag * (1 + 0.12 * (1 - sync));
     const F = Fthrust + FdragAdj;
-    const mass = crewMassKg(n);
+    const mass = crewMassKg(CREW_SIZE);
     const a = F / mass;
 
     v = v + a * dt;
@@ -477,7 +543,104 @@
       crewSize: 5,
       syncPct: 85,
       paceVariance: 0.15,
+      targetPaceS: 28,
+      paddlers: defaultPaddlers(),
     };
+  }
+
+  const PARAM_RANGES = {
+    strokeLengthM: { min: 0.6, max: 2.0, step: 0.05, label: "Stroke length" },
+    depthM: { min: 0.08, max: 0.65, step: 0.01, label: "Insert depth" },
+    angleDeg: { min: 0, max: 45, step: 1, label: "Insert angle" },
+    spm: { min: 40, max: 95, step: 1, label: "Stroke rate" },
+    effort: { min: 0.6, max: 1.2, step: 0.05, label: "Effort" },
+    syncPct: { min: 0, max: 100, step: 5, label: "Sync" },
+    paceVariance: { min: 0, max: 1, step: 0.05, label: "Pace variance" },
+  };
+
+  /** How much each slider moves avg speed (hold others fixed, lo→hi of range). */
+  function speedImpact(rawParams) {
+    const base = normalizeParams(rawParams);
+    const keys = Object.keys(PARAM_RANGES);
+    const rows = [];
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      const r = PARAM_RANGES[key];
+      const loP = Object.assign({}, base);
+      const hiP = Object.assign({}, base);
+      loP[key] = r.min;
+      hiP[key] = r.max;
+      const lo = simulate(loP, { dt: 1 / 40, maxT: 90 });
+      const hi = simulate(hiP, { dt: 1 / 40, maxT: 90 });
+      const vLo = lo.finished ? lo.avgSpeed : 0;
+      const vHi = hi.finished ? hi.avgSpeed : 0;
+      const delta = vHi - vLo;
+      const cur = base[key];
+      // Best end of range for speed
+      const preferHigh = delta >= 0;
+      const best = preferHigh ? r.max : r.min;
+      rows.push({
+        key: key,
+        label: r.label,
+        delta: delta,
+        vLo: vLo,
+        vHi: vHi,
+        current: cur,
+        best: best,
+        preferHigh: preferHigh,
+        room: preferHigh ? best - cur : cur - best,
+      });
+    }
+    rows.sort(function (a, b) {
+      return Math.abs(b.delta) - Math.abs(a.delta);
+    });
+    return rows;
+  }
+
+  /** Greedy hill-climb for fastest 100 m within slider ranges. */
+  function optimiseParams(rawParams) {
+    let best = normalizeParams(rawParams);
+    // Race hard: effort up, variance down as starting bias
+    best.effort = Math.max(best.effort, 1.0);
+    best.paceVariance = Math.min(best.paceVariance, 0.1);
+    let bestRes = simulate(best, { dt: 1 / 45, maxT: 90 });
+    let bestT = bestRes.finished ? bestRes.time : 1e9;
+    const keys = Object.keys(PARAM_RANGES);
+    for (let round = 0; round < 4; round++) {
+      let improved = false;
+      for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        const r = PARAM_RANGES[key];
+        const candidates = [];
+        for (let v = r.min; v <= r.max + 1e-9; v += r.step) {
+          candidates.push(Math.round(v / r.step) * r.step);
+        }
+        // Also try current
+        candidates.push(best[key]);
+        let localBest = best[key];
+        let localT = bestT;
+        for (let c = 0; c < candidates.length; c++) {
+          const trial = Object.assign({}, best);
+          trial[key] = candidates[c];
+          trial.crewSize = 5;
+          const res = simulate(trial, { dt: 1 / 45, maxT: 90 });
+          const t = res.finished ? res.time : 1e9;
+          if (t + 1e-6 < localT) {
+            localT = t;
+            localBest = trial[key];
+          }
+        }
+        if (localT + 1e-6 < bestT) {
+          best[key] = localBest;
+          bestT = localT;
+          improved = true;
+        }
+      }
+      if (!improved) break;
+    }
+    best = normalizeParams(best);
+    const finalRes = simulate(best, { dt: 1 / 45, maxT: 90 });
+    return { params: best, result: finalRes };
   }
 
   function syncNote(params) {
@@ -564,5 +727,13 @@
     defaultParams: defaultParams,
     coachingNote: coachingNote,
     syncNote: syncNote,
+    PARAM_RANGES: PARAM_RANGES,
+    speedImpact: speedImpact,
+    optimiseParams: optimiseParams,
+    CREW_SIZE: CREW_SIZE,
+    SKILL_PRESETS: SKILL_PRESETS,
+    defaultPaddlers: defaultPaddlers,
+    normalizePaddlers: normalizePaddlers,
+    skillPreset: skillPreset,
   };
 })(typeof window !== "undefined" ? window : globalThis);

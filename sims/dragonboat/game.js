@@ -19,6 +19,8 @@
   let state = S.INTRO;
   let paused = false;
   let params = P.defaultParams();
+  params.crewSize = 5;
+  params.paddlers = P.normalizePaddlers(params.paddlers);
   let sim = P.initialState();
   let lastResult = null;
   let raf = 0;
@@ -47,9 +49,11 @@
     els.intro = $("panel-intro");
     els.result = $("panel-result");
     els.editDock = $("edit-dock");
+    els.raceDock = $("race-dock");
     els.hud = $("hud");
     els.runControls = $("run-controls");
     els.est = $("est-time");
+    els.impact = $("impact-panel");
     els.hudDist = $("hud-dist");
     els.hudSpeed = $("hud-speed");
     els.hudTime = $("hud-time");
@@ -65,9 +69,21 @@
       setState(S.EDIT);
     });
     $("btn-paddle").addEventListener("click", startRun);
+    $("btn-optimise").addEventListener("click", runOptimise);
+    renderCrewSeats();
+    const slTarget = $("sl-target-pace");
+    if (slTarget) {
+      slTarget.addEventListener("input", function () {
+        params.targetPaceS = parseFloat(slTarget.value);
+        $("val-target-pace").textContent = params.targetPaceS.toFixed(1) + " s";
+        updateEstimate();
+        draw();
+      });
+    }
     $("btn-reset-params").addEventListener("click", function () {
       params = P.defaultParams();
       syncSliders();
+      renderCrewSeats();
       updateEstimate();
       draw();
     });
@@ -93,7 +109,6 @@
       ["sl-angle", "angleDeg", "val-angle", function (v) { return Math.round(v) + "°"; }],
       ["sl-spm", "spm", "val-spm", function (v) { return Math.round(v) + " spm"; }],
       ["sl-effort", "effort", "val-effort", function (v) { return Math.round(v * 100) + "%"; }],
-      ["sl-crew", "crewSize", "val-crew", function (v) { return String(Math.round(v)); }],
       ["sl-sync", "syncPct", "val-sync", function (v) { return Math.round(v) + "%"; }],
       ["sl-pace", "paceVariance", "val-pace", function (v) { return Math.round(v * 100) + "%"; }, true],
     ];
@@ -130,6 +145,7 @@
     onResize();
 
     syncSliders();
+    renderCrewSeats();
     setState(S.EDIT);
     updateEstimate();
     draw();
@@ -172,10 +188,10 @@
 
   function resizeGraph() {
     if (!els.graph || !els.graphWrap) return;
-    const wrap = els.stageWrap || $("stage-wrap");
-    const rect = wrap.getBoundingClientRect();
-    const cssW = Math.max(280, Math.floor(rect.width) || W);
-    const cssH = Math.min(120, Math.max(72, Math.floor(rect.height * 0.18)));
+    const host = els.graphWrap.getBoundingClientRect();
+    const fall = (els.raceDock || els.stageWrap || document.body).getBoundingClientRect();
+    const cssW = Math.max(240, Math.floor(host.width || fall.width - 24) || W);
+    const cssH = Math.max(56, Math.min(80, Math.floor(host.height) || 72));
     els.graph.style.width = cssW + "px";
     els.graph.style.height = cssH + "px";
     graphDpr = Math.min(window.devicePixelRatio || 1, 2.5);
@@ -196,12 +212,14 @@
     $("val-spm").textContent = Math.round(params.spm) + " spm";
     $("sl-effort").value = params.effort;
     $("val-effort").textContent = Math.round(params.effort * 100) + "%";
-    $("sl-crew").value = params.crewSize;
-    $("val-crew").textContent = String(params.crewSize);
     $("sl-sync").value = params.syncPct;
     $("val-sync").textContent = Math.round(params.syncPct) + "%";
     $("sl-pace").value = Math.round(params.paceVariance * 100);
     $("val-pace").textContent = Math.round(params.paceVariance * 100) + "%";
+    if ($("sl-target-pace")) {
+      $("sl-target-pace").value = params.targetPaceS;
+      $("val-target-pace").textContent = Number(params.targetPaceS).toFixed(1) + " s";
+    }
   }
 
   function setState(next) {
@@ -210,13 +228,14 @@
     els.intro.classList.toggle("active", state === S.INTRO);
     els.result.classList.toggle("active", state === S.RESULT);
     els.editDock.classList.toggle("active", state === S.EDIT);
-    els.hud.classList.toggle("active", state === S.RUN);
-    els.runControls.classList.toggle("active", state === S.RUN);
-    els.graphWrap.classList.toggle("active", state === S.RUN || state === S.RESULT);
-    els.graphWrap.setAttribute("aria-hidden", state === S.RUN || state === S.RESULT ? "false" : "true");
-    if (els.stageWrap) {
-      els.stageWrap.classList.toggle("racing", state === S.RUN || state === S.RESULT);
-    }
+    const racing = state === S.RUN;
+    if (els.raceDock) els.raceDock.classList.toggle("active", racing);
+    if (els.hud) els.hud.classList.toggle("active", racing);
+    els.runControls.classList.toggle("active", racing);
+    els.graphWrap.classList.toggle("active", racing);
+    els.graphWrap.setAttribute("aria-hidden", racing ? "false" : "true");
+    document.getElementById("app").classList.toggle("racing", racing);
+    if (els.stageWrap) els.stageWrap.classList.toggle("racing", racing);
     updatePauseLabel();
 
     if (state !== S.RUN && raf) {
@@ -266,16 +285,70 @@
       els.est.textContent = "est. > 90 s / 100 m";
     } else {
       previewV = r.avgSpeed;
+      const target = params.targetPaceS || 28;
+      const delta = r.time - target;
+      const vs =
+        Math.abs(delta) < 0.05
+          ? "on target"
+          : delta > 0
+            ? "+" + delta.toFixed(1) + " s vs target"
+            : delta.toFixed(1) + " s vs target";
       els.est.textContent =
         "est. " +
         r.time.toFixed(1) +
         " s · " +
         r.avgSpeed.toFixed(2) +
-        " m/s · crew " +
-        params.crewSize +
-        " · sync " +
-        Math.round(params.syncPct) +
-        "%";
+        " m/s · " +
+        vs;
+    }
+    renderImpact();
+  }
+
+  function renderImpact() {
+    if (!els.impact || !P.speedImpact) return;
+    const rows = P.speedImpact(params);
+    const maxAbs = Math.max(0.05, Math.abs(rows[0] && rows[0].delta) || 0.05);
+    let html = '<div class="impact-title">How each setting moves speed</div>';
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const pct = Math.min(100, (Math.abs(row.delta) / maxAbs) * 100);
+      const dir = row.preferHigh ? "higher → faster" : "lower → faster";
+      const sign = row.delta >= 0 ? "+" : "";
+      html +=
+        '<div class="impact-row">' +
+        "<span>" +
+        row.label +
+        ' <span class="hint-dir">(' +
+        dir +
+        ")</span></span>" +
+        '<span class="delta">' +
+        sign +
+        row.delta.toFixed(2) +
+        " m/s</span>" +
+        '<div class="bar"><i style="width:' +
+        pct.toFixed(0) +
+        '%"></i></div>' +
+        "</div>";
+    }
+    els.impact.innerHTML = html;
+  }
+
+  function runOptimise() {
+    const out = P.optimiseParams(params);
+    params = out.params;
+    params.crewSize = 5;
+    params.paddlers = P.normalizePaddlers(params.paddlers);
+    syncSliders();
+    renderCrewSeats();
+    updateEstimate();
+    draw();
+    if (out.result && out.result.finished) {
+      els.est.textContent =
+        "optimised · est. " +
+        out.result.time.toFixed(1) +
+        " s · " +
+        out.result.avgSpeed.toFixed(2) +
+        " m/s — tap Paddle!";
     }
   }
 
@@ -367,7 +440,9 @@
     const idx = paddlerIndex || 0;
     const kin = s.kin || P.strokeKinematics(params);
     const n = params.crewSize;
-    const offset = P.paddlerPhaseOffset(idx, n, params.syncPct);
+    const seat = (params.paddlers && params.paddlers[idx]) || { skill: "amateur" };
+    const skill = P.skillPreset(seat.skill);
+    const offset = P.paddlerPhaseOffset(idx, n, params.syncPct) + skill.phaseLag;
     // Per-paddler effective cycle from lead phaseTime
     const spm = params.spm; // visual uses mean SPM; physics has variance
     const cycleT = 60 / spm;
@@ -520,6 +595,8 @@
   }
 
   function drawSpeedOnCanvas(ctx) {
+    // During race, speed lives in the HTML HUD under the canvas — avoid double UI
+    if (state === S.RUN || state === S.RESULT) return;
     const isPreview = state === S.EDIT || state === S.INTRO;
     const v = isPreview ? (previewV > 0.05 ? previewV : 1.8) : sim.v || 0;
     const label = v.toFixed(2) + " m/s";
@@ -555,6 +632,49 @@
     ctx.arcTo(x, y + h, x, y, rr);
     ctx.arcTo(x, y, x + w, y, rr);
     ctx.closePath();
+  }
+
+
+  function seatName(i) {
+    if (i === 0) return "Stern";
+    if (i === P.CREW_SIZE - 1) return "Bow";
+    return "Seat " + (i + 1);
+  }
+
+  function renderCrewSeats() {
+    const host = $("crew-seats");
+    if (!host) return;
+    params.crewSize = 5;
+    params.paddlers = P.normalizePaddlers(params.paddlers);
+    host.innerHTML = "";
+    for (let i = 0; i < P.CREW_SIZE; i++) {
+      const seat = params.paddlers[i];
+      const row = document.createElement("div");
+      row.className = "seat-row";
+      const lab = document.createElement("div");
+      lab.className = "seat-label";
+      lab.innerHTML = "<strong>" + seatName(i) + "</strong>#" + (i + 1);
+      const sel = document.createElement("select");
+      sel.dataset.seat = String(i);
+      ["beginner", "amateur", "advanced"].forEach(function (id) {
+        const opt = document.createElement("option");
+        opt.value = id;
+        opt.textContent = P.SKILL_PRESETS[id].label;
+        if (seat.skill === id) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.className = "skill-" + seat.skill;
+      sel.addEventListener("change", function () {
+        const idx = parseInt(sel.dataset.seat, 10);
+        params.paddlers[idx].skill = sel.value;
+        sel.className = "skill-" + sel.value;
+        updateEstimate();
+        draw();
+      });
+      row.appendChild(lab);
+      row.appendChild(sel);
+      host.appendChild(row);
+    }
   }
 
   function startPreviewLoop() {
@@ -711,9 +831,16 @@
     const sh = worldLocal(pose.shoulderX, pose.shoulderY, sc);
     const hip = worldLocal(pose.hipX, pose.hipY, sc);
     const head = worldLocal(pose.shoulderX + 0.02, pose.shoulderY + 0.28, sc);
+    const seat = (params.paddlers && params.paddlers[idx]) || { skill: "amateur" };
+    const skillColor =
+      seat.skill === "beginner"
+        ? "#ef6b6b"
+        : seat.skill === "advanced"
+          ? "#3ecf8e"
+          : "#f0b429";
 
-    ctx.strokeStyle = "#e8eefc";
-    ctx.fillStyle = "#e8eefc";
+    ctx.strokeStyle = skillColor;
+    ctx.fillStyle = skillColor;
     ctx.lineWidth = idx === 0 ? 3 : 2;
     ctx.lineCap = "round";
 
@@ -817,7 +944,7 @@
     ctx.fillStyle = "rgba(139, 155, 184, 0.8)";
     ctx.font = "600 11px system-ui, sans-serif";
     ctx.fillText(
-      "catch " + Math.round(params.angleDeg) + "° · crew " + params.crewSize + " · sync " + Math.round(params.syncPct) + "%",
+      "catch " + Math.round(params.angleDeg) + "° · 5 seats · sync " + Math.round(params.syncPct) + "%",
       14,
       waterY + 22
     );
@@ -881,8 +1008,7 @@
     const pct = x / P.RACE_DISTANCE_M;
     const barW = W - 40;
     const bx = 20;
-    // Stay clear of bottom Pause/Restart bar (+ graph when racing)
-    const by = H - (state === S.RUN ? 58 : 28);
+    const by = H - 18;
     ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.fillRect(bx, by, barW, 8);
     ctx.fillStyle = "#3ecf8e";
