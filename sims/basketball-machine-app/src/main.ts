@@ -24,22 +24,27 @@ const BALL_R = 0.105
 /** Total balls in circulation — typical arcade machine feel. */
 const BALL_COUNT = 9
 const GRAVITY = -12.5
-/** Ready-ball rest on the front trough / shelf. */
-const SHOOT_POS = new THREE.Vector3(0, 0.78, 1.02)
-/** Fixed arcade POV: behind trough, looking at backboard + rim. */
-const CAM_POS = new THREE.Vector3(0, 1.38, 2.15)
-const CAM_LOOK = new THREE.Vector3(0, 1.55, -1.55)
-/** Lower scale + tighter clamp so iOS flicks stay arcade-controllable. */
-const IMPULSE_SCALE = 0.42
-const MIN_FLICK = 260
-const MAX_FLICK = 820
-const UP_BIAS = 0.58
-const FORWARD_BIAS = 0.88
+/** Ready-ball rest on the front trough / shelf (must stay in camera frame). */
+const SHOOT_POS = new THREE.Vector3(0, 0.88, 1.12)
+/** Fixed arcade POV: tip down + pulled back so trough ball and hoop share the frame. */
+const CAM_POS = new THREE.Vector3(0, 1.5, 2.55)
+const CAM_LOOK = new THREE.Vector3(0, 1.12, -1.25)
+/**
+ * Arcade-slow launches: ball flight ~0.6–1.2s to the rim on a normal flick.
+ * Prior 0.42 / 820 still streaked; cut ~3× and clamp post-impulse speed.
+ */
+const IMPULSE_SCALE = 0.12
+const MIN_FLICK = 140
+const MAX_FLICK = 360
+const UP_BIAS = 0.48
+const FORWARD_BIAS = 0.72
+/** Hard cap on launch linvel (m/s) so max flicks stay readable. */
+const MAX_LAUNCH_SPEED = 6.2
 
 /** Interior half-width / depth / height for closed cabinet. */
 const CAB_HALF_W = 1.05
 const CAB_BACK_Z = -2.55
-const CAB_FRONT_Z = 1.28
+const CAB_FRONT_Z = 1.38
 const CAB_CEIL_Y = 2.35
 const CAB_FLOOR_Y = 0.02
 
@@ -136,7 +141,7 @@ const scene = new THREE.Scene()
 scene.background = new THREE.Color(0x0a1020)
 scene.fog = new THREE.Fog(0x0a1020, 9, 18)
 
-const camera = new THREE.PerspectiveCamera(52, 1, 0.05, 30)
+const camera = new THREE.PerspectiveCamera(58, 1, 0.05, 30)
 camera.position.copy(CAM_POS)
 camera.lookAt(CAM_LOOK)
 
@@ -153,7 +158,7 @@ const hoopLight = new THREE.PointLight(0xfff2c8, 0.75, 7)
 hoopLight.position.set(0, 2.2, -1.5)
 scene.add(hoopLight)
 const troughLight = new THREE.PointLight(0xffc978, 0.45, 4)
-troughLight.position.set(0, 1.2, 1.1)
+troughLight.position.set(0, 1.25, 1.2)
 scene.add(troughLight)
 
 const root = new THREE.Group()
@@ -200,25 +205,25 @@ const trough = new THREE.Mesh(
   new THREE.BoxGeometry(1.7, 0.1, 0.5),
   new THREE.MeshStandardMaterial({ color: 0x8b1e2d, roughness: 0.5, metalness: 0.2 }),
 )
-trough.position.set(0, 0.58, 1.05)
+trough.position.set(0, 0.62, 1.12)
 trough.castShadow = true
 trough.receiveShadow = true
 root.add(trough)
 
 const troughLip = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.06, 0.07), railMat)
-troughLip.position.set(0, 0.68, 1.28)
+troughLip.position.set(0, 0.74, 1.34)
 root.add(troughLip)
 
 // Side lips on trough so balls stay in the bin
 for (const x of [-0.82, 0.82]) {
-  const lip = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.12, 0.48), railMat)
-  lip.position.set(x, 0.7, 1.05)
+  const lip = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.14, 0.5), railMat)
+  lip.position.set(x, 0.76, 1.12)
   root.add(lip)
 }
 
 // Cabinet front body under trough
 const cabinet = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.7, 0.65), woodDark)
-cabinet.position.set(0, 0.28, 1.18)
+cabinet.position.set(0, 0.3, 1.22)
 cabinet.castShadow = true
 root.add(cabinet)
 
@@ -411,12 +416,12 @@ function quatX(fullRad: number) {
 }
 
 // Trough shelf
-addFixedCuboid(0, 0.58, 1.05, 0.85, 0.05, 0.25, { restitution: 0.12, friction: 0.95 })
+addFixedCuboid(0, 0.62, 1.12, 0.85, 0.05, 0.26, { restitution: 0.12, friction: 0.95 })
 // Front lip (stops balls rolling out of cabinet toward camera)
-addFixedCuboid(0, 0.72, 1.28, 0.86, 0.1, 0.035, { restitution: 0.2, friction: 0.8 })
+addFixedCuboid(0, 0.78, 1.34, 0.86, 0.1, 0.035, { restitution: 0.2, friction: 0.8 })
 // Trough side lips
-addFixedCuboid(-0.82, 0.72, 1.05, 0.03, 0.1, 0.24, { restitution: 0.2, friction: 0.7 })
-addFixedCuboid(0.82, 0.72, 1.05, 0.03, 0.1, 0.24, { restitution: 0.2, friction: 0.7 })
+addFixedCuboid(-0.82, 0.78, 1.12, 0.03, 0.11, 0.25, { restitution: 0.2, friction: 0.7 })
+addFixedCuboid(0.82, 0.78, 1.12, 0.03, 0.11, 0.25, { restitution: 0.2, friction: 0.7 })
 // Ramp → trough transition step (gentle catch)
 addFixedCuboid(0, 0.42, 0.72, 0.95, 0.04, 0.18, { restitution: 0.15, friction: 0.7, rotX: 0.2 })
 
@@ -584,7 +589,7 @@ function createBallEntity(x: number, y: number, z: number): BallEntity {
     RAPIER.ColliderDesc.ball(BALL_R)
       .setRestitution(0.68)
       .setFriction(0.55)
-      .setDensity(1.05)
+      .setDensity(5.5)
       .setCollisionGroups((COL_BALL << 16) | (COL_WORLD | COL_RIM | COL_BOARD | COL_SENSOR | COL_BALL))
       .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS),
     body,
@@ -651,7 +656,7 @@ function getReadyBall(): BallEntity | null {
 }
 
 function isInTroughZone(p: { x: number; y: number; z: number }) {
-  return p.z > 0.78 && p.z < 1.32 && p.y < 1.05 && Math.abs(p.x) < 0.9
+  return p.z > 0.82 && p.z < 1.42 && p.y < 1.15 && Math.abs(p.x) < 0.9
 }
 
 function speedOf(ent: BallEntity) {
@@ -712,16 +717,16 @@ function launchBall(dx: number, dy: number, speedPx: number) {
   }
   if (!ready) return // no ball available yet — wait for return
 
-  // Soften px/s → power so mid-flicks aren't near max
-  const speed = THREE.MathUtils.clamp(speedPx * 0.72, MIN_FLICK, MAX_FLICK)
-  const power = Math.pow((speed - MIN_FLICK) / (MAX_FLICK - MIN_FLICK), 0.9)
-  const lateral = THREE.MathUtils.clamp(dx / 280, -1.0, 1.0)
-  const lift = THREE.MathUtils.clamp(dy / 420, -0.1, 1.2)
+  // Soften px/s → power; prefer underpowered / readable arcs
+  const speed = THREE.MathUtils.clamp(speedPx * 0.4, MIN_FLICK, MAX_FLICK)
+  const power = Math.pow((speed - MIN_FLICK) / (MAX_FLICK - MIN_FLICK), 1.05)
+  const lateral = THREE.MathUtils.clamp(dx / 320, -1.0, 1.0)
+  const lift = THREE.MathUtils.clamp(dy / 480, -0.05, 1.05)
 
-  const impulseY = UP_BIAS + lift * 0.65 + power * 0.38
-  const impulseZ = -(FORWARD_BIAS + power * 0.85 + Math.max(0, lift) * 0.15)
-  const impulseX = lateral * (0.4 + power * 0.22)
-  const scale = IMPULSE_SCALE * (0.92 + power * 0.35)
+  const impulseY = UP_BIAS + lift * 0.5 + power * 0.28
+  const impulseZ = -(FORWARD_BIAS + power * 0.55 + Math.max(0, lift) * 0.12)
+  const impulseX = lateral * (0.28 + power * 0.16)
+  const scale = IMPULSE_SCALE * (0.9 + power * 0.28)
 
   ready.ready = false
   ready.inFlight = true
@@ -736,8 +741,17 @@ function launchBall(dx: number, dy: number, speedPx: number) {
   ready.body.setLinvel({ x: 0, y: 0, z: 0 }, true)
   ready.body.setAngvel({ x: 0, y: 0, z: 0 }, true)
   ready.body.applyImpulse({ x: impulseX * scale, y: impulseY * scale, z: impulseZ * scale }, true)
+  // Hard velocity clamp — even a max flick stays trackable (~0.6–1.2s to rim)
+  {
+    const v = ready.body.linvel()
+    const spd = Math.hypot(v.x, v.y, v.z)
+    if (spd > MAX_LAUNCH_SPEED) {
+      const s = MAX_LAUNCH_SPEED / spd
+      ready.body.setLinvel({ x: v.x * s, y: v.y * s, z: v.z * s }, true)
+    }
+  }
   ready.body.applyTorqueImpulse(
-    { x: (Math.random() - 0.5) * 0.012, y: (Math.random() - 0.5) * 0.012, z: (Math.random() - 0.5) * 0.012 },
+    { x: (Math.random() - 0.5) * 0.008, y: (Math.random() - 0.5) * 0.008, z: (Math.random() - 0.5) * 0.008 },
     true,
   )
 
@@ -889,20 +903,16 @@ canvas.addEventListener('pointercancel', () => {
   trailMat.opacity = 0
 })
 
-/** Prefer visualViewport so canvas fits above Safari's bottom chrome. */
-function getViewSize() {
-  const vv = window.visualViewport
-  if (vv && vv.width > 0 && vv.height > 0) {
-    return { w: Math.round(vv.width), h: Math.round(vv.height) }
-  }
-  return { w: innerWidth, h: innerHeight }
-}
-
+/**
+ * Size to the canvas layout box (already padded above Safari safe-area),
+ * not the full visualViewport — otherwise the trough is drawn under the navbar.
+ */
 function fitRenderer() {
-  const { w, h } = getViewSize()
-  camera.aspect = w / Math.max(1, h)
+  const w = Math.max(1, Math.round(canvas.clientWidth))
+  const h = Math.max(1, Math.round(canvas.clientHeight))
+  camera.aspect = w / h
   camera.updateProjectionMatrix()
-  renderer.setSize(w, h)
+  renderer.setSize(w, h, false)
   camera.position.copy(CAM_POS)
   camera.lookAt(CAM_LOOK)
 }
@@ -966,7 +976,7 @@ function updateBallLifecycle(now: number) {
     // Settled back in trough → no longer in flight; eligible for ready promotion
     if (ent.inFlight && age > 700) {
       const spd = Math.hypot(v.x, v.y, v.z)
-      if (isInTroughZone(p) && spd < 0.55 && p.y < 0.95) {
+      if (isInTroughZone(p) && spd < 0.55 && p.y < 1.05) {
         if (!ent.scored && !ent.missCounted && age > 900) registerMiss(ent)
         ent.inFlight = false
         ent.scored = false
