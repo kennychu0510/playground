@@ -4,6 +4,9 @@ import { heightAt } from './terrain'
 
 export const WHEEL_R = 28
 
+/** Steady horizontal cruise speed (Matter velocity units). */
+export const CRUISE_SPEED = 3.6
+
 export type Bike = {
   chassis: Matter.Body
   front: Matter.Body
@@ -14,18 +17,23 @@ export type Bike = {
 }
 
 function makeWheelBody(x: number, y: number, verts: Pt[], label: string): Matter.Body {
-  // Offset verts to world position via Bodies.fromVertices
   const placed = verts.map((v) => ({ x: v.x + x, y: v.y + y }))
   let body: Matter.Body | undefined
   try {
-    const parts = Matter.Bodies.fromVertices(x, y, [placed], {
-      friction: 0.95,
-      frictionStatic: 1.4,
-      restitution: 0.15,
-      density: 0.004,
-      label,
-      render: { fillStyle: '#e8eefc', strokeStyle: '#3ecf8e', lineWidth: 2 },
-    }, true)
+    const parts = Matter.Bodies.fromVertices(
+      x,
+      y,
+      [placed],
+      {
+        friction: 0.95,
+        frictionStatic: 1.4,
+        restitution: 0.15,
+        density: 0.004,
+        label,
+        render: { fillStyle: '#e8eefc', strokeStyle: '#3ecf8e', lineWidth: 2 },
+      },
+      true,
+    )
     if (parts) body = parts
   } catch {
     /* fall through */
@@ -40,7 +48,6 @@ function makeWheelBody(x: number, y: number, verts: Pt[], label: string): Matter
       render: { fillStyle: '#e8eefc' },
     })
   }
-  // Keep custom verts for drawing (local space)
   ;(body as Matter.Body & { customVerts?: Pt[] }).customVerts = verts.map((v) => ({ ...v }))
   return body
 }
@@ -69,9 +76,6 @@ export function createBike(world: Matter.World, startX = 80): Bike {
     label: 'chassis',
     render: { fillStyle: '#f0b429' },
   })
-
-  // Simple seat / head tube visual helpers as compound would be overkill —
-  // we draw frame in canvas from chassis transform.
 
   const rear = makeWheelBody(startX - 28, y + 26, verts, 'wheel-rear')
   const front = makeWheelBody(startX + 28, y + 26, verts, 'wheel-front')
@@ -124,27 +128,35 @@ export function swapWheels(world: Matter.World, bike: Bike, verts: Pt[]): void {
   bike.wheelVerts = verts.map((v) => ({ ...v }))
 }
 
-export function driveBike(bike: Bike, gas: number, brake: number): void {
-  // gas/brake in [0,1]
-  const rear = bike.rear
-  const maxSpin = 0.55
-  if (gas > 0) {
-    const target = gas * maxSpin
-    const next = rear.angularVelocity + (target - rear.angularVelocity) * 0.12
-    Matter.Body.setAngularVelocity(rear, next)
-    // Forward nudge along chassis facing
-    const thrust = gas * 0.0028
+/**
+ * Hold a steady forward cruise: velocity controller on chassis + matching
+ * wheel spin. No player gas/brake.
+ */
+export function driveBike(bike: Bike): void {
+  const targetVx = CRUISE_SPEED
+  const vx = bike.chassis.velocity.x
+  const err = targetVx - vx
+  Matter.Body.setVelocity(bike.chassis, {
+    x: vx + err * 0.18,
+    y: bike.chassis.velocity.y,
+  })
+
+  // Rolling without slip: ω = -v / r (Matter: +ω is clockwise)
+  const targetSpin = -targetVx / WHEEL_R
+  Matter.Body.setAngularVelocity(
+    bike.rear,
+    bike.rear.angularVelocity + (targetSpin - bike.rear.angularVelocity) * 0.22,
+  )
+  Matter.Body.setAngularVelocity(
+    bike.front,
+    bike.front.angularVelocity + (targetSpin - bike.front.angularVelocity) * 0.14,
+  )
+
+  // Light forward force so climbs don't stall odd shapes
+  if (vx < targetVx * 0.85) {
     Matter.Body.applyForce(bike.chassis, bike.chassis.position, {
-      x: Math.cos(bike.chassis.angle) * thrust,
-      y: Math.sin(bike.chassis.angle) * thrust,
-    })
-  }
-  if (brake > 0) {
-    Matter.Body.setAngularVelocity(rear, rear.angularVelocity * (1 - 0.18 * brake))
-    Matter.Body.setAngularVelocity(bike.front, bike.front.angularVelocity * (1 - 0.12 * brake))
-    Matter.Body.setVelocity(bike.chassis, {
-      x: bike.chassis.velocity.x * (1 - 0.06 * brake),
-      y: bike.chassis.velocity.y,
+      x: 0.0016,
+      y: 0,
     })
   }
 }
@@ -152,17 +164,16 @@ export function driveBike(bike: Bike, gas: number, brake: number): void {
 export function resetBike(world: Matter.World, bike: Bike, startX = 80): void {
   const y = heightAt(startX) - 70
   Matter.Body.setPosition(bike.chassis, { x: startX, y })
-  Matter.Body.setVelocity(bike.chassis, { x: 0, y: 0 })
+  Matter.Body.setVelocity(bike.chassis, { x: CRUISE_SPEED * 0.5, y: 0 })
   Matter.Body.setAngle(bike.chassis, 0)
   Matter.Body.setAngularVelocity(bike.chassis, 0)
 
   Matter.Body.setPosition(bike.rear, { x: startX - 28, y: y + 26 })
   Matter.Body.setPosition(bike.front, { x: startX + 28, y: y + 26 })
   for (const w of [bike.rear, bike.front]) {
-    Matter.Body.setVelocity(w, { x: 0, y: 0 })
+    Matter.Body.setVelocity(w, { x: CRUISE_SPEED * 0.5, y: 0 })
     Matter.Body.setAngle(w, 0)
     Matter.Body.setAngularVelocity(w, 0)
   }
-  // Ensure constraints still in world (no-op if already)
   void world
 }

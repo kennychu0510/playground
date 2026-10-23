@@ -15,8 +15,6 @@ const distEl = document.getElementById('dist')!
 const bannerEl = document.getElementById('banner')!
 const drawPanel = document.getElementById('draw-panel')!
 const btnDraw = document.getElementById('btn-draw') as HTMLButtonElement
-const btnGas = document.getElementById('btn-gas') as HTMLButtonElement
-const btnBrake = document.getElementById('btn-brake') as HTMLButtonElement
 const btnClear = document.getElementById('btn-clear') as HTMLButtonElement
 const btnCancel = document.getElementById('btn-cancel') as HTMLButtonElement
 const btnApply = document.getElementById('btn-apply') as HTMLButtonElement
@@ -34,8 +32,6 @@ let bike: Bike = createBike(world, 100)
 
 let camX = 0
 let camY = 0
-let gas = 0
-let brake = 0
 let started = false
 let dpr = 1
 
@@ -57,51 +53,11 @@ function resize() {
 window.addEventListener('resize', resize)
 resize()
 
-function bindHold(btn: HTMLButtonElement, set: (v: number) => void) {
-  const down = (e: Event) => {
-    e.preventDefault()
-    btn.classList.add('held')
-    set(1)
-  }
-  const up = () => {
-    btn.classList.remove('held')
-    set(0)
-  }
-  btn.addEventListener('pointerdown', down)
-  btn.addEventListener('pointerup', up)
-  btn.addEventListener('pointerleave', up)
-  btn.addEventListener('pointercancel', up)
-}
-bindHold(btnGas, (v) => {
-  gas = v
-})
-bindHold(btnBrake, (v) => {
-  brake = v
-})
-
 window.addEventListener('keydown', (e) => {
   if (e.repeat) return
-  if (e.code === 'ArrowRight' || e.code === 'KeyD') {
-    gas = 1
-    btnGas.classList.add('held')
-  }
-  if (e.code === 'ArrowLeft' || e.code === 'KeyA' || e.code === 'Space') {
-    brake = 1
-    btnBrake.classList.add('held')
-  }
   if (e.code === 'KeyR') {
     resetBike(world, bike, 100)
     showBanner('Reset')
-  }
-})
-window.addEventListener('keyup', (e) => {
-  if (e.code === 'ArrowRight' || e.code === 'KeyD') {
-    gas = 0
-    btnGas.classList.remove('held')
-  }
-  if (e.code === 'ArrowLeft' || e.code === 'KeyA' || e.code === 'Space') {
-    brake = 0
-    btnBrake.classList.remove('held')
   }
 })
 
@@ -131,7 +87,7 @@ btnApply.addEventListener('click', () => {
   closeDraw()
   if (!started) {
     started = true
-    showBanner('Gas to ride · redraw anytime')
+    showBanner('Cruising · redraw anytime')
   } else {
     showBanner('New wheel fitted')
   }
@@ -142,7 +98,7 @@ function applyWheel(verts: Pt[]) {
 }
 
 // First launch: open draw pad with default circle already riding
-showBanner('Draw a wheel (or just Gas to ride the circle)', true)
+showBanner('Draw a wheel (or close to cruise on the circle)', true)
 openDraw()
 
 function drawWheelVisual(body: Matter.Body, verts: Pt[]) {
@@ -251,7 +207,7 @@ function render() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
   ctx.clearRect(0, 0, w, h)
 
-  // Sky gradient already in CSS; add distant hills
+  // Distant hills
   ctx.save()
   ctx.translate(w / 2 - camX * 0.3, h * 0.35 - camY * 0.05)
   ctx.fillStyle = 'rgba(30, 58, 90, 0.45)'
@@ -323,7 +279,7 @@ function loop(now: number) {
   const dt = Math.min(32, now - last)
   last = now
 
-  driveBike(bike, gas, brake)
+  driveBike(bike)
   Matter.Engine.update(engine, dt)
 
   // Soft upright assist so odd wheels don't instantly tip forever

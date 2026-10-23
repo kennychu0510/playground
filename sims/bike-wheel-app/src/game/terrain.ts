@@ -4,20 +4,22 @@ import Matter from 'matter-js'
 export const TERRAIN_LEN = 9000
 export const GROUND_THICK = 80
 
+/**
+ * Smooth rolling hills only — no cliffs, spikes, or gaps.
+ * Layered low-frequency sines keep max grade ≈ 0.16 (~9°) so odd drawn
+ * wheels can still climb. Continuous ground for the full course.
+ */
 export function heightAt(x: number): number {
-  const t = x / 180
-  // Mix of hills, dips, flats, and high-frequency bumps
-  const hills = Math.sin(t * 0.55) * 90 + Math.sin(t * 0.21 + 1.2) * 55
-  const dips = Math.sin(t * 1.1 + 0.4) * 28
-  const bumps = Math.sin(t * 4.2) * 8 + Math.sin(t * 7.5 + 2) * 4
-  // Flat-ish stretches every ~1200u
-  const stretch = Math.sin(x / 600) * 0.5 + 0.5
-  const flatMask = stretch > 0.72 ? 0.25 : 1
-  return 420 + (hills + dips) * flatMask + bumps
+  const h1 = Math.sin(x / 1200) * 48 // max |dy/dx| ≈ 0.040
+  const h2 = Math.sin(x / 780 + 0.9) * 36 // ≈ 0.046
+  const h3 = Math.sin(x / 520 + 1.8) * 16 // ≈ 0.031
+  const h4 = Math.sin(x / 2000 + 0.3) * 55 // ≈ 0.028
+  const micro = Math.sin(x / 280 + 2.2) * 4 // ≈ 0.014
+  return 420 + h1 + h2 + h3 + h4 + micro
 }
 
 export function buildTerrain(world: Matter.World): Matter.Body[] {
-  const step = 28
+  const step = 24
   const bodies: Matter.Body[] = []
   const vertsTop: { x: number; y: number }[] = []
 
@@ -46,15 +48,6 @@ export function buildTerrain(world: Matter.World): Matter.Body[] {
     })
     bodies.push(seg)
   }
-
-  // Start platform ledge cue
-  const ramp = Matter.Bodies.rectangle(40, heightAt(40) + 10, 160, 20, {
-    isStatic: true,
-    friction: 1,
-    label: 'ramp',
-    render: { fillStyle: '#40916c' },
-  })
-  bodies.push(ramp)
 
   Matter.World.add(world, bodies)
   return bodies

@@ -102,8 +102,8 @@ html, body {
   right: 0;
   bottom: 0;
   z-index: 5;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
+  justify-content: center;
   gap: 10px;
   padding: 12px 14px;
   padding-bottom: max(12px, env(safe-area-inset-bottom));
@@ -118,7 +118,7 @@ html, body {
   font: inherit;
   font-weight: 700;
   font-size: 0.95rem;
-  padding: 16px 12px;
+  padding: 16px 20px;
   border-radius: 14px;
   cursor: pointer;
   min-height: 56px;
@@ -135,7 +135,7 @@ html, body {
 .draw-btn {
   border-color: var(--warn);
   color: var(--warn);
-  min-width: 120px;
+  min-width: 160px;
 }
 
 .draw-panel {
@@ -204,12 +204,4 @@ html, body {
   background: var(--accent);
   color: #0b1220;
   border-color: transparent;
-}
-
-@media (min-width: 640px) {
-  .controls {
-    max-width: 480px;
-    left: 50%;
-    transform: translateX(-50%);
-  }
 }
