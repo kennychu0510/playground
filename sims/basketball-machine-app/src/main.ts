@@ -30,16 +30,18 @@ const SHOOT_POS = new THREE.Vector3(0, 0.88, 1.12)
 const CAM_POS = new THREE.Vector3(0, 1.5, 2.55)
 const CAM_LOOK = new THREE.Vector3(0, 1.12, -1.25)
 /**
- * Arcade-slow launches: ball flight ~0.6–1.2s to the rim on a normal flick.
- * Prior 0.42 / 820 still streaked; cut ~3× and clamp post-impulse speed.
+ * Middle-ground launches (~3.1 m trough→rim, g=-12.5):
+ * normal flick ~8.5–9.5 m/s reaches/banks; max ~10.5 still trackable.
+ * Between prior blur (0.42/820 uncapped) and underpowered (0.12/360/6.2).
  */
-const IMPULSE_SCALE = 0.12
-const MIN_FLICK = 140
-const MAX_FLICK = 360
-const UP_BIAS = 0.48
-const FORWARD_BIAS = 0.72
-/** Hard cap on launch linvel (m/s) so max flicks stay readable. */
-const MAX_LAUNCH_SPEED = 6.2
+const IMPULSE_SCALE = 0.25
+const MIN_FLICK = 180
+const MAX_FLICK = 560
+const UP_BIAS = 0.56
+const FORWARD_BIAS = 0.84
+/** Power-scaled launch speed (m/s); absolute ceiling for readability. */
+const MIN_LAUNCH_SPEED = 7.5
+const MAX_LAUNCH_SPEED = 10.5
 
 /** Interior half-width / depth / height for closed cabinet. */
 const CAB_HALF_W = 1.05
@@ -589,7 +591,7 @@ function createBallEntity(x: number, y: number, z: number): BallEntity {
     RAPIER.ColliderDesc.ball(BALL_R)
       .setRestitution(0.68)
       .setFriction(0.55)
-      .setDensity(5.5)
+      .setDensity(2.5)
       .setCollisionGroups((COL_BALL << 16) | (COL_WORLD | COL_RIM | COL_BOARD | COL_SENSOR | COL_BALL))
       .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS),
     body,
@@ -717,16 +719,16 @@ function launchBall(dx: number, dy: number, speedPx: number) {
   }
   if (!ready) return // no ball available yet — wait for return
 
-  // Soften px/s → power; prefer underpowered / readable arcs
-  const speed = THREE.MathUtils.clamp(speedPx * 0.4, MIN_FLICK, MAX_FLICK)
-  const power = Math.pow((speed - MIN_FLICK) / (MAX_FLICK - MIN_FLICK), 1.05)
-  const lateral = THREE.MathUtils.clamp(dx / 320, -1.0, 1.0)
-  const lift = THREE.MathUtils.clamp(dy / 480, -0.05, 1.05)
+  // Gesture → power; direction from impulse biases, speed power-scaled to rim reach
+  const speed = THREE.MathUtils.clamp(speedPx * 0.55, MIN_FLICK, MAX_FLICK)
+  const power = Math.pow((speed - MIN_FLICK) / (MAX_FLICK - MIN_FLICK), 0.95)
+  const lateral = THREE.MathUtils.clamp(dx / 300, -1.0, 1.0)
+  const lift = THREE.MathUtils.clamp(dy / 450, -0.05, 1.1)
 
-  const impulseY = UP_BIAS + lift * 0.5 + power * 0.28
-  const impulseZ = -(FORWARD_BIAS + power * 0.55 + Math.max(0, lift) * 0.12)
-  const impulseX = lateral * (0.28 + power * 0.16)
-  const scale = IMPULSE_SCALE * (0.9 + power * 0.28)
+  const impulseY = UP_BIAS + lift * 0.55 + power * 0.32
+  const impulseZ = -(FORWARD_BIAS + power * 0.65 + Math.max(0, lift) * 0.14)
+  const impulseX = lateral * (0.32 + power * 0.18)
+  const scale = IMPULSE_SCALE * (0.92 + power * 0.3)
 
   ready.ready = false
   ready.inFlight = true
@@ -741,17 +743,18 @@ function launchBall(dx: number, dy: number, speedPx: number) {
   ready.body.setLinvel({ x: 0, y: 0, z: 0 }, true)
   ready.body.setAngvel({ x: 0, y: 0, z: 0 }, true)
   ready.body.applyImpulse({ x: impulseX * scale, y: impulseY * scale, z: impulseZ * scale }, true)
-  // Hard velocity clamp — even a max flick stays trackable (~0.6–1.2s to rim)
+  // Map to arcade launch speed: weak still reaches (~7.5), max trackable (~10.5)
   {
     const v = ready.body.linvel()
     const spd = Math.hypot(v.x, v.y, v.z)
-    if (spd > MAX_LAUNCH_SPEED) {
-      const s = MAX_LAUNCH_SPEED / spd
+    if (spd > 1e-4) {
+      const target = THREE.MathUtils.lerp(MIN_LAUNCH_SPEED, MAX_LAUNCH_SPEED, power)
+      const s = target / spd
       ready.body.setLinvel({ x: v.x * s, y: v.y * s, z: v.z * s }, true)
     }
   }
   ready.body.applyTorqueImpulse(
-    { x: (Math.random() - 0.5) * 0.008, y: (Math.random() - 0.5) * 0.008, z: (Math.random() - 0.5) * 0.008 },
+    { x: (Math.random() - 0.5) * 0.01, y: (Math.random() - 0.5) * 0.01, z: (Math.random() - 0.5) * 0.01 },
     true,
   )
 
