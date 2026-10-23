@@ -211,7 +211,7 @@ wallCollider(W / 2, COURT.backHeight / 2, 0.06, 0, COURT.backHeight / 2, L - 0.0
 const ballBody = world.createRigidBody(
   RAPIER.RigidBodyDesc.dynamic()
     .setTranslation(0, 1.2, L - 2)
-    .setLinearDamping(0.28)
+    .setLinearDamping(0.12)
     .setAngularDamping(0.35)
     .setCcdEnabled(true)
     .setCanSleep(true),
@@ -220,7 +220,7 @@ const ballCollider = world.createCollider(
   RAPIER.ColliderDesc.ball(COURT.ballRadius)
     .setRestitution(0.65)
     .setFriction(0.5)
-    .setDensity(120)
+    .setDensity(45)
     .setRestitutionCombineRule(REST_MAX),
   ballBody,
 )
@@ -240,8 +240,8 @@ function tameBall() {
   const v = ballBody.linvel()
   const t = ballBody.translation()
   // Near floor: never allow huge upward rebound
-  if (t.y < COURT.ballRadius + 0.1 && v.y > 3.5) {
-    ballBody.setLinvel({ x: v.x * 0.9, y: Math.min(v.y, 2.0), z: v.z * 0.9 }, true)
+  if (t.y < COURT.ballRadius + 0.1 && v.y > 4.5) {
+    ballBody.setLinvel({ x: v.x * 0.95, y: Math.min(v.y, 3.2), z: v.z * 0.95 }, true)
   }
   if (v.y > 11) {
     ballBody.setLinvel({ x: v.x, y: 7, z: v.z }, true)
@@ -348,18 +348,61 @@ function enterAim(kind: 'serveAim' | 'playerAim') {
   syncHud()
 }
 
+/** Lob serve: ballistic arc to the front-wall aim point (must clear service line). */
+function serveLaunchVel(from: { x: number; y: number; z: number }, target: THREE.Vector3, power: number) {
+  const dx = target.x - from.x
+  const dz = target.z - from.z
+  const horiz = Math.hypot(dx, dz)
+  // Soft lob at low power, firmer at high — flight time ~0.45–0.85s
+  const flight = THREE.MathUtils.clamp(0.85 - power * 0.4, 0.42, 0.9)
+  const g = 9.81
+  let vx = dx / flight
+  let vz = dz / flight
+  // Hit aim point near apex of the lob so it arrives high on the front wall
+  let vy = (target.y - from.y) / flight + 0.5 * g * flight
+  // Cap horizontal so it doesn't laser; keep a squash-like lob feel
+  const hSpeed = Math.hypot(vx, vz)
+  const maxH = 6 + power * 10 // ~7.5–16 m/s horizontal
+  if (hSpeed > maxH && hSpeed > 1e-6) {
+    const s = maxH / hSpeed
+    vx *= s
+    vz *= s
+    // Recompute loft for the stretched time to cover same distance
+    const flight2 = horiz / maxH
+    vy = (target.y - from.y) / flight2 + 0.5 * g * flight2
+  }
+  // Always some loft on serve
+  vy = Math.max(vy, 2.2 + (1 - power) * 2.5)
+  return { x: vx, y: vy, z: vz }
+}
+
+function rallyLaunchVel(from: { x: number; y: number; z: number }, target: THREE.Vector3, power: number) {
+  const dir = new THREE.Vector3(target.x - from.x, target.y - from.y, target.z - from.z)
+  if (dir.lengthSq() < 1e-6) dir.set(0, 0.15, -1)
+  dir.normalize()
+  // Drive: flatter, punchier than serve lob
+  const speed = 9 + power * 14
+  // Slight loft so it clears tin without sky rockets
+  const y = Math.max(dir.y * speed, 1.2 + power * 1.5)
+  return { x: dir.x * speed, y, z: dir.z * speed }
+}
+
 function doHit() {
   const phase = store.getState().phase
   if (phase !== 'serveAim' && phase !== 'playerAim') return
   const power = Math.max(0.15, store.getState().power)
   const target = aimWorldTarget()
   const from = ballBody.translation()
-  const dir = new THREE.Vector3(target.x - from.x, target.y - from.y, target.z - from.z)
-  if (dir.lengthSq() < 1e-6) dir.set(0, 0.2, -1)
-  dir.normalize()
-  const speed = 7 + power * 16
+  // Nudge ball up a touch as if tossed into the strike
+  if (phase === 'serveAim') {
+    ballBody.setTranslation({ x: from.x, y: Math.max(from.y, 1.28), z: from.z }, true)
+  }
+  const pos = ballBody.translation()
+  const vel = phase === 'serveAim'
+    ? serveLaunchVel(pos, target, power)
+    : rallyLaunchVel(pos, target, power)
   ballBody.wakeUp()
-  ballBody.setLinvel({ x: dir.x * speed, y: dir.y * speed, z: dir.z * speed }, true)
+  ballBody.setLinvel(vel, true)
   aimMarker.visible = false
   store.getState().setBanner('')
   store.getState().setPhase('rally')

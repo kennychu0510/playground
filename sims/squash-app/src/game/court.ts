@@ -25,7 +25,7 @@ export function serviceBoxCenter(side: ServeSide) {
   const z = (boxFront + boxBack) / 2 - 0.35
   // Right box = positive x (as viewed from back looking forward)
   const x = side === 'right' ? halfW * 0.42 : -halfW * 0.42
-  return { x, y: 1.05, z }
+  return { x, y: 1.32, z }
 }
 
 export function playerEyeForServe(side: ServeSide) {
