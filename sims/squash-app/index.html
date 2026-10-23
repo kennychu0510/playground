@@ -13,20 +13,27 @@
         <header class="top">
           <a class="back" href="../../">← Playground</a>
           <h1>Squash Lab</h1>
+          <span id="score" class="score">0 – 0</span>
           <span id="bot-badge" class="badge">vs Farag</span>
         </header>
-        <div id="banner" class="banner">Warming up…</div>
+        <div id="banner" class="banner">Pick opponent · tap Serve</div>
         <div id="aim-ui" class="aim-ui hidden">
-          <p class="aim-hint">Drag to aim · hold for power · release to hit</p>
+          <p id="aim-hint" class="aim-hint">1) Drag to aim · 2) Set power · 3) Hit</p>
           <div class="power-wrap">
-            <div class="power-label">Power</div>
-            <div class="power-track"><div id="power-fill" class="power-fill"></div></div>
+            <div class="power-label">Power <span id="power-val">55%</span></div>
+            <input id="power-slider" type="range" min="15" max="100" step="1" value="55" />
+            <div class="power-track"><div id="power-fill" class="power-fill" style="width:55%"></div></div>
           </div>
+          <button type="button" id="btn-hit" class="btn hit-btn">Hit</button>
         </div>
         <div id="crosshair" class="crosshair hidden"></div>
         <div class="bot-bar">
-          <label for="bot-select">Opponent</label>
-          <select id="bot-select"></select>
+          <label for="bot-select">Opp</label>
+          <select id="bot-select" aria-label="Opponent"></select>
+          <select id="serve-side" aria-label="Serve side">
+            <option value="right">Serve R</option>
+            <option value="left">Serve L</option>
+          </select>
           <button type="button" id="btn-serve" class="btn">Serve</button>
         </div>
       </div>
