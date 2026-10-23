@@ -132,7 +132,7 @@ line(new THREE.Vector3(0, 0.015, shortZ), new THREE.Vector3(0, 0.015, L))
 line(new THREE.Vector3(-W / 2, COURT.serviceLineY, 0.14), new THREE.Vector3(W / 2, COURT.serviceLineY, 0.14))
 
 const ballMesh = new THREE.Mesh(
-  new THREE.SphereGeometry(COURT.ballRadius * 3.5, 20, 16),
+  new THREE.SphereGeometry(COURT.ballRadius * 2.4, 20, 16),
   new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.5 }),
 )
 ballMesh.castShadow = true
@@ -199,28 +199,28 @@ function wallCollider(hx: number, hy: number, hz: number, x: number, y: number, 
   )
 }
 
-// Floor: soft so it doesn't rocket upward
-wallCollider(W / 2, 0.04, L / 2, 0, -0.04, L / 2, 0.3, 0.85)
-// Front wall / tin / sides / back — high restitution; Max combine so wall wins over ball
-wallCollider(W / 2, (COURT.frontHeight - tin) / 2, 0.06, 0, tin + (COURT.frontHeight - tin) / 2, 0.06, 0.85, 0.35)
-wallCollider(W / 2, tin / 2, 0.07, 0, tin / 2, 0.07, 0.2, 0.9)
-wallCollider(0.06, COURT.sideHeight / 2, L / 2, -W / 2, COURT.sideHeight / 2, L / 2, 0.8, 0.4)
-wallCollider(0.06, COURT.sideHeight / 2, L / 2, W / 2, COURT.sideHeight / 2, L / 2, 0.8, 0.4)
-wallCollider(W / 2, COURT.backHeight / 2, 0.06, 0, COURT.backHeight / 2, L - 0.06, 0.75, 0.45)
+// Floor: lively squash bounce (not sky rockets — tameBall caps)
+wallCollider(W / 2, 0.04, L / 2, 0, -0.04, L / 2, 0.48, 0.7)
+// Front / sides / back — punchy wall rebound
+wallCollider(W / 2, (COURT.frontHeight - tin) / 2, 0.06, 0, tin + (COURT.frontHeight - tin) / 2, 0.06, 0.92, 0.25)
+wallCollider(W / 2, tin / 2, 0.07, 0, tin / 2, 0.07, 0.15, 0.95)
+wallCollider(0.06, COURT.sideHeight / 2, L / 2, -W / 2, COURT.sideHeight / 2, L / 2, 0.88, 0.3)
+wallCollider(0.06, COURT.sideHeight / 2, L / 2, W / 2, COURT.sideHeight / 2, L / 2, 0.88, 0.3)
+wallCollider(W / 2, COURT.backHeight / 2, 0.06, 0, COURT.backHeight / 2, L - 0.06, 0.85, 0.35)
 
 const ballBody = world.createRigidBody(
   RAPIER.RigidBodyDesc.dynamic()
     .setTranslation(0, 1.2, L - 2)
-    .setLinearDamping(0.12)
+    .setLinearDamping(0.06)
     .setAngularDamping(0.35)
     .setCcdEnabled(true)
     .setCanSleep(true),
 )
 const ballCollider = world.createCollider(
   RAPIER.ColliderDesc.ball(COURT.ballRadius)
-    .setRestitution(0.65)
-    .setFriction(0.5)
-    .setDensity(45)
+    .setRestitution(0.78)
+    .setFriction(0.35)
+    .setDensity(28)
     .setRestitutionCombineRule(REST_MAX),
   ballBody,
 )
@@ -235,16 +235,16 @@ function resetBall(x: number, y: number, z: number) {
 /** Keep ball restitution stable; only tame crazy floor launches. */
 function tameBall() {
   // Keep wall-friendly restitution (Max combine uses wall when higher)
-  ballCollider.setRestitution(0.65)
+  ballCollider.setRestitution(0.78)
 
   const v = ballBody.linvel()
   const t = ballBody.translation()
   // Near floor: never allow huge upward rebound
-  if (t.y < COURT.ballRadius + 0.1 && v.y > 4.5) {
-    ballBody.setLinvel({ x: v.x * 0.95, y: Math.min(v.y, 3.2), z: v.z * 0.95 }, true)
+  if (t.y < COURT.ballRadius + 0.12 && v.y > 5.5) {
+    ballBody.setLinvel({ x: v.x * 0.97, y: Math.min(v.y, 4.0), z: v.z * 0.97 }, true)
   }
-  if (v.y > 11) {
-    ballBody.setLinvel({ x: v.x, y: 7, z: v.z }, true)
+  if (v.y > 14) {
+    ballBody.setLinvel({ x: v.x, y: 9, z: v.z }, true)
   }
   if (t.y > COURT.frontHeight + 0.4) {
     ballBody.setLinvel({ x: v.x * 0.5, y: -Math.abs(v.y) * 0.3, z: v.z * 0.5 }, true)
@@ -320,7 +320,6 @@ function setCameraRally() {
 let isServing = false
 let pendingBot = false
 let botTimer = 0
-let frozenBot = false
 let botPlan: ReturnType<typeof planReturn> | null = null
 let armPlayer = false
 let hitFrontOnServe = false
@@ -415,7 +414,6 @@ function doHit() {
     pendingBot = true
   }
   deadFrames = 0
-  frozenBot = false
   botTimer = 0
   botPlan = null
 }
@@ -433,7 +431,6 @@ function serve() {
   isServing = true
   pendingBot = false
   armPlayer = false
-  frozenBot = false
   hitFrontOnServe = false
   awaitServeReturn = false
   deadFrames = 0
@@ -456,7 +453,6 @@ function applyServeSide(side: ServeSide) {
   isServing = true
   pendingBot = false
   armPlayer = false
-  frozenBot = false
   hitFrontOnServe = false
   awaitServeReturn = false
   deadFrames = 0
@@ -501,7 +497,6 @@ function endPoint(msg: string, toBot: boolean) {
   store.getState().setBanner(msg + ' · ' + store.getState().scorePlayer + '–' + store.getState().scoreBot + ' · Serve')
   pendingBot = false
   armPlayer = false
-  frozenBot = false
   isServing = false
   awaitServeReturn = false
   deadFrames = 0
@@ -533,8 +528,9 @@ function checkPoint() {
     return
   }
   // Don't call "Ball died" while serve is in flight or waiting for the bot return
+  // Protect while serve in flight or waiting for the live bot return — not after
   const protect =
-    isServing || awaitServeReturn || pendingBot || frozenBot || store.getState().phase !== 'rally'
+    isServing || awaitServeReturn || (pendingBot && !armPlayer) || store.getState().phase !== 'rally'
   if (protect) {
     deadFrames = 0
     return
@@ -548,41 +544,60 @@ function checkPoint() {
   }
 }
 
+/** Live bot strike — never freezes the ball; only the player aim phase pauses. */
+function botStrikeVel(
+  from: { x: number; y: number; z: number },
+  plan: NonNullable<typeof botPlan>,
+) {
+  const target = new THREE.Vector3(plan.target.x, plan.target.y, plan.target.z)
+  if (plan.kind === 'lob') return serveLaunchVel(from, target, Math.min(0.85, plan.power))
+  return rallyLaunchVel(from, target, plan.power)
+}
+
 function tryBot(dt: number) {
-  if (!pendingBot || (store.getState().phase !== 'rally' && store.getState().phase !== 'botTelegraph')) return
+  if (!pendingBot || store.getState().phase !== 'rally') return
   const t = ballBody.translation()
   const v = ballBody.linvel()
-  // Inbound to front (rally), or rebound after a legal serve hit the front wall
-  const towardFront = t.z < shortZ - 0.1 && v.z < -0.35
+  const towardFront = t.z < shortZ + 0.4 && t.z > 0.35 && v.z < -0.2 && t.y < 2.8
   const serveRebound =
-    awaitServeReturn && hitFrontOnServe && v.z > 0.25 && t.z > 0.45 && t.z < shortZ + 2.2
-  if (!towardFront && !serveRebound && !frozenBot) return
-
-  const bot = store.getState().bot
-  botTimer += dt
-  if (!frozenBot) {
-    if (botTimer < bot.reaction) return
-    frozenBot = true
-    awaitServeReturn = false
-    ballBody.setLinvel({ x: 0, y: 0, z: 0 }, true)
-    ballBody.sleep()
-    botPlan = planReturn(bot, t, { width: W, length: L, frontHeight: COURT.frontHeight, tin })
-    store.getState().setPhase('botTelegraph')
-    store.getState().setBanner(bot.name + ' · ' + botPlan.kind)
+    awaitServeReturn &&
+    hitFrontOnServe &&
+    v.z > 0.15 &&
+    t.z > 0.5 &&
+    t.z < shortZ + 2.5 &&
+    t.y > COURT.ballRadius + 0.02
+  if (!towardFront && !serveRebound) {
     botTimer = 0
     return
   }
-  if (botTimer < 0.35) return
-  const plan = botPlan!
-  const from = ballBody.translation()
-  const dir = new THREE.Vector3(plan.target.x - from.x, plan.target.y - from.y, plan.target.z - from.z).normalize()
-  const speed = 8 + plan.power * 14
+
+  const bot = store.getState().bot
+  botTimer += dt
+  if (botTimer < bot.reaction) return
+
+  // Hit in motion — no sleep / no telegraph pause
+  const plan = planReturn(bot, t, { width: W, length: L, frontHeight: COURT.frontHeight, tin })
+  botPlan = plan
+  const vel = botStrikeVel(t, plan)
+  // Soft blend with reverse of incoming so contact feels continuous
+  const blend = 0.18
   ballBody.wakeUp()
-  ballBody.setLinvel({ x: dir.x * speed, y: dir.y * speed, z: dir.z * speed }, true)
-  store.getState().setPhase('rally')
-  store.getState().setBanner('')
+  ballBody.setLinvel(
+    {
+      x: vel.x * (1 - blend) - v.x * blend * 0.35,
+      y: vel.y,
+      z: vel.z * (1 - blend) - v.z * blend * 0.35,
+    },
+    true,
+  )
+  store.getState().setBanner(bot.name + ' · ' + plan.kind)
+  window.setTimeout(() => {
+    if (store.getState().phase === 'rally' && store.getState().banner.startsWith(bot.name)) {
+      store.getState().setBanner('')
+    }
+  }, 700)
   pendingBot = false
-  frozenBot = false
+  awaitServeReturn = false
   botPlan = null
   botTimer = 0
   armPlayer = true
@@ -593,7 +608,8 @@ function maybePlayerAim() {
   if (!armPlayer || store.getState().phase !== 'rally') return
   const t = ballBody.translation()
   const v = ballBody.linvel()
-  if (v.z > 0.6 && t.z > shortZ && t.z > L - 3.2 && t.y < 2.4) {
+  // Pause only for your shot once the ball is deep in your half
+  if (v.z > 0.35 && t.z > shortZ + 0.6 && t.z > L - 3.8 && t.y < 2.6) {
     armPlayer = false
     enterAim('playerAim')
   }
@@ -615,24 +631,20 @@ function frame(now: number) {
   const phase = store.getState().phase
 
   if (phase === 'serveAim' || phase === 'playerAim') {
-    // Aim phases: do NOT auto-overwrite look from rally follow
+    // Only pause physics for YOUR aim (serve / return). Bot hits stay live.
     applyLook()
     updateAimMarker()
-  } else if (phase === 'rally' || phase === 'botTelegraph') {
-    if (phase === 'rally') {
-      acc += dt
-      while (acc >= FIXED) {
-        world.step()
-        tameBall()
-        acc -= FIXED
-      }
-      checkPoint()
-      setCameraRally()
-    } else {
-      applyLook()
+  } else if (phase === 'rally') {
+    acc += dt
+    while (acc >= FIXED) {
+      world.step()
+      tameBall()
+      acc -= FIXED
     }
+    checkPoint()
     tryBot(dt)
     maybePlayerAim()
+    if (store.getState().phase === 'rally') setCameraRally()
   } else {
     applyLook()
   }
