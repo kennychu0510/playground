@@ -12,6 +12,7 @@ type Athlete = {
   legL: THREE.Group
   legR: THREE.Group
   arm: THREE.Group
+  racquet: THREE.Group
   shirt: THREE.MeshStandardMaterial
   lastX: number
   lastZ: number
@@ -33,7 +34,7 @@ export function createView(canvas: HTMLCanvasElement): View {
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
 
   const scene = new THREE.Scene()
-  const camera = new THREE.PerspectiveCamera(58, 1, 0.08, 50)
+  const camera = new THREE.PerspectiveCamera(66, 1, 0.08, 60)
   const look = new THREE.Vector3(0, 1.2, 4)
   const camDesired = new THREE.Vector3()
   const lookDesired = new THREE.Vector3()
@@ -139,19 +140,19 @@ export function createView(canvas: HTMLCanvasElement): View {
     const k = 1 - Math.exp(-4.2 * dt)
     if (menu) {
       menuAng += dt * 0.12
-      camDesired.set(Math.sin(menuAng) * 1.1, 5.7, COURT.length + 3.7)
-      lookDesired.set(0, 0.65, 3.5)
+      camDesired.set(Math.sin(menuAng) * 1.2, 6.3, COURT.length + 4.8)
+      lookDesired.set(0, 0.6, 3.3)
     } else if (cameraMode === 'classic') {
-      camDesired.set(sim.player.x * 0.12, 6.1, COURT.length + 4)
-      lookDesired.set(0, 0.8, 2.8)
+      camDesired.set(sim.player.x * 0.1, 6.5, COURT.length + 5.2)
+      lookDesired.set(0, 0.75, 2.6)
     } else {
-      const cz = sim.player.z + 2.35
-      if (cz > COURT.length - 0.45) {
-        camDesired.set(sim.player.x * 0.22 + 0.15, 5.05, COURT.length + 2.8)
-        lookDesired.set(sim.player.x * 0.12, 0.85, 3.1)
+      const cz = sim.player.z + 3.15
+      if (cz > COURT.length - 0.2) {
+        camDesired.set(sim.player.x * 0.16, 5.85, COURT.length + 4.3)
+        lookDesired.set(sim.player.x * 0.08, 0.8, 2.8)
       } else {
-        camDesired.set(sim.player.x + 0.7, 2.15, cz)
-        lookDesired.set(sim.player.x * 0.45, 1.05, Math.max(0.6, sim.player.z - 3))
+        camDesired.set(sim.player.x + 0.8, 2.85, cz)
+        lookDesired.set(sim.player.x * 0.4, 1.0, Math.max(0.4, sim.player.z - 3.2))
       }
     }
     camera.position.lerp(camDesired, k)
@@ -269,13 +270,7 @@ function buildCourt(theme: CourtTheme) {
   right.receiveShadow = true
   g.add(left, right)
 
-  const back = new THREE.Mesh(new THREE.BoxGeometry(COURT.width, COURT.backHeight, 0.08), wallMat(night ? 0xd5f2ff : 0xf7f8fb))
-  back.position.set(0, COURT.backHeight / 2, COURT.length + 0.04)
-  if (!night) back.receiveShadow = true
-  g.add(back)
-
-  const rail = box(COURT.width, 0.06, 0.08, 0, COURT.backHeight + 0.02, COURT.length + 0.04, lineColor, 0.45)
-  g.add(rail)
+  // The back wall stays in the rules, but it is not drawn, so the camera can see the court.
   const outFront = box(COURT.width, 0.05, 0.04, 0, COURT.frontHeight, 0.01, lineColor, 0.4)
   g.add(outFront)
   const service = box(COURT.width, 0.035, 0.025, 0, COURT.serviceLineY, 0.02, lineColor, 0.4)
@@ -354,29 +349,42 @@ function makeAthlete(shirtColor: number): Athlete {
   }
 
   const arm = new THREE.Group()
-  arm.position.set(0.2, 1.22, 0.02)
-  const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, 0.2, 3, 6), skin)
-  upper.rotation.z = 0.45
-  upper.position.set(0.06, -0.16, 0)
+  arm.position.set(0.18, 1.34, 0.02)
+  const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.046, 0.2, 3, 6), skin)
+  upper.rotation.z = 0.55
+  upper.rotation.x = 0.7
+  upper.position.set(0.06, -0.12, -0.1)
   arm.add(upper)
-  arm.add(makeRacquet())
+  const hand = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), skin)
+  hand.position.set(0.1, -0.18, -0.22)
+  arm.add(hand)
+  const racquet = makeRacquet()
+  racquet.position.set(0.1, -0.18, -0.22)
+  arm.add(racquet)
   group.add(arm)
 
-  return { group, legL: leg(-0.09), legR: leg(0.09), arm, shirt, lastX: 0, lastZ: 0 }
+  return { group, legL: leg(-0.09), legR: leg(0.09), arm, racquet, shirt, lastX: 0, lastZ: 0 }
 }
 
+/** Grip at the origin, head up along +Y, face toward ±Z (the front wall). */
 function makeRacquet() {
   const g = new THREE.Group()
-  g.position.set(0.12, -0.36, -0.02)
-  const black = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.35, metalness: 0.25 })
-  const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.015, 8, 18), black)
-  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.016, 0.32, 8), black)
-  handle.position.y = -0.26
-  const strings = new THREE.Mesh(
-    new THREE.CircleGeometry(0.125, 14),
-    new THREE.MeshStandardMaterial({ color: 0xf7f4ea, side: THREE.DoubleSide, roughness: 0.55 }),
+  const frame = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.35, metalness: 0.25 })
+  const grip = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.018, 0.02, 0.14, 8),
+    new THREE.MeshStandardMaterial({ color: 0x6b3a22, roughness: 0.7 }),
   )
-  g.add(hoop, handle, strings)
+  grip.position.y = 0.07
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.015, 0.18, 8), frame)
+  shaft.position.y = 0.2
+  const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.145, 0.016, 8, 20), frame)
+  hoop.position.y = 0.4
+  const strings = new THREE.Mesh(
+    new THREE.CircleGeometry(0.12, 16),
+    new THREE.MeshStandardMaterial({ color: 0xf4f0e4, side: THREE.DoubleSide, roughness: 0.55 }),
+  )
+  strings.position.y = 0.4
+  g.add(grip, shaft, hoop, strings)
   return g
 }
 
@@ -390,15 +398,18 @@ function pose(body: Athlete, actor: Actor, time: number, dt: number) {
   const swing = moving ? Math.sin(time * 10) * 0.55 : 0
   body.legL.rotation.x = swing
   body.legR.rotation.x = -swing
+  const racquet = body.racquet
   if (actor.charging && actor.swing <= 0) {
-    body.arm.rotation.x = -1.15
-    body.arm.rotation.z = -0.35
+    // Backswing: head lifted behind the right shoulder, handle still in the hand.
+    body.arm.rotation.set(0.15, 0.2, -0.45)
+    racquet.rotation.set(-0.25, 0.1, -0.55)
   } else if (actor.swing > 0) {
     const u = 1 - actor.swing / 0.32
-    body.arm.rotation.x = -1.25 + u * 2.5
-    body.arm.rotation.z = -0.25 + u * 0.7
+    body.arm.rotation.set(0.15 - u * 0.85, 0.2 - u * 0.15, -0.45 + u * 0.25)
+    racquet.rotation.set(-0.25 - u * 0.7, 0.1, -0.55 + u * 0.7)
   } else {
-    body.arm.rotation.x = 0.15
-    body.arm.rotation.z = 0.2
+    // Ready: grip at chest height, head up in front of the right shoulder, face toward the front wall.
+    body.arm.rotation.set(-0.55, 0.05, -0.1)
+    racquet.rotation.set(-0.35, 0, -0.15)
   }
 }
