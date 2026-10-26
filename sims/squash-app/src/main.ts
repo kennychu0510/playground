@@ -471,8 +471,11 @@ muteBtn.textContent = settings.sound ? '🔊' : '🔇'
 addEventListener('resize', () => view.resize())
 
 let last = performance.now()
+/** Wall-clock scale. Ball, running, charge, and the AI all use this. */
+const PACE = 0.58
+
 function frame(now: number) {
-  const dt = Math.min(0.05, (now - last) / 1000)
+  const dt = Math.min(0.05, ((now - last) / 1000) * PACE)
   last = now
   const input = readInput()
   stepSim(sim, input, dt)
