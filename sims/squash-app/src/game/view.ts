@@ -77,7 +77,7 @@ export function createView(canvas: HTMLCanvasElement): View {
     emissiveIntensity: 0.35,
   })
   const ball = new THREE.Mesh(new THREE.SphereGeometry(COURT.ballRadius, 24, 18), ballMat)
-  ball.scale.setScalar(3.2)
+  ball.scale.setScalar(2.4)
   ball.castShadow = true
   const dot = new THREE.Mesh(
     new THREE.SphereGeometry(COURT.ballRadius * 0.28, 8, 8),
@@ -88,7 +88,7 @@ export function createView(canvas: HTMLCanvasElement): View {
   scene.add(ball)
 
   const blob = new THREE.Mesh(
-    new THREE.CircleGeometry(0.14, 18),
+    new THREE.CircleGeometry(0.09, 18),
     new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false }),
   )
   blob.rotation.x = -Math.PI / 2
@@ -212,15 +212,33 @@ export function createView(canvas: HTMLCanvasElement): View {
 }
 
 function boxHighlight(side: 1 | -1) {
-  const w = COURT.width / 2 - 0.08
-  const d = COURT.length - COURT.shortLineZ - 0.08
-  const mesh = new THREE.Mesh(
+  const w = COURT.width / 2 - 0.16
+  const d = COURT.length - COURT.shortLineZ - 0.16
+  const x = (side * COURT.width) / 4
+  const z = COURT.shortLineZ + 0.08 + d / 2
+  const group = new THREE.Group()
+  const fill = new THREE.Mesh(
     new THREE.PlaneGeometry(w, d),
-    new THREE.MeshBasicMaterial({ color: 0xd6ff4a, transparent: true, opacity: 0.42, depthWrite: false }),
+    new THREE.MeshBasicMaterial({ color: 0xc6ff3a, transparent: true, opacity: 0.58, depthWrite: false }),
   )
-  mesh.rotation.x = -Math.PI / 2
-  mesh.position.set(side * COURT.width / 4, 0.03, COURT.shortLineZ + 0.04 + d / 2)
-  return mesh
+  fill.rotation.x = -Math.PI / 2
+  fill.position.set(x, 0.045, z)
+  fill.renderOrder = 2
+  group.add(fill)
+  const edge = new THREE.MeshBasicMaterial({ color: 0xe8ff6a })
+  const t = 0.07
+  const y = 0.06
+  const bar = (bw: number, bd: number, px: number, pz: number) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(bw, 0.025, bd), edge)
+    mesh.position.set(px, y, pz)
+    mesh.renderOrder = 3
+    group.add(mesh)
+  }
+  bar(w, t, x, z - d / 2)
+  bar(w, t, x, z + d / 2)
+  bar(t, d, x - w / 2, z)
+  bar(t, d, x + w / 2, z)
+  return group
 }
 
 function buildCourt(theme: CourtTheme) {
@@ -278,18 +296,18 @@ function buildCourt(theme: CourtTheme) {
 
   const lineMat = new THREE.MeshStandardMaterial({ color: lineColor, roughness: 0.45 })
   const strip = (w: number, d: number, x: number, z: number) => {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.012, d), lineMat)
-    m.position.set(x, 0.012, z)
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.02, d), lineMat)
+    m.position.set(x, 0.028, z)
     g.add(m)
   }
   const halfW = COURT.width / 2
-  strip(COURT.width, 0.045, 0, COURT.shortLineZ)
-  strip(0.045, COURT.length - COURT.shortLineZ, 0, (COURT.shortLineZ + COURT.length) / 2)
-  strip(0.04, COURT.length, -halfW + 0.02, COURT.length / 2)
-  strip(0.04, COURT.length, halfW - 0.02, COURT.length / 2)
-  strip(COURT.width, 0.04, 0, 0.04)
-  strip(COURT.width, 0.04, 0, COURT.length - 0.04)
-  // Service box backs are the back wall; the short line and half line close them.
+  const boxDepth = COURT.length - COURT.shortLineZ
+  strip(COURT.width, 0.08, 0, COURT.shortLineZ)
+  strip(0.08, boxDepth, 0, COURT.shortLineZ + boxDepth / 2)
+  strip(0.05, COURT.length, -halfW + 0.03, COURT.length / 2)
+  strip(0.05, COURT.length, halfW - 0.03, COURT.length / 2)
+  strip(COURT.width, 0.05, 0, 0.04)
+  strip(COURT.width, 0.08, 0, COURT.length - 0.05)
 
   const lampMat = new THREE.MeshStandardMaterial({
     color: 0xfff6dd,
@@ -399,11 +417,7 @@ function pose(body: Athlete, actor: Actor, time: number, dt: number) {
   body.legL.rotation.x = swing
   body.legR.rotation.x = -swing
   const racquet = body.racquet
-  if (actor.charging && actor.swing <= 0) {
-    // Backswing: head lifted behind the right shoulder, handle still in the hand.
-    body.arm.rotation.set(0.15, 0.2, -0.45)
-    racquet.rotation.set(-0.25, 0.1, -0.55)
-  } else if (actor.swing > 0) {
+  if (actor.swing > 0) {
     const u = 1 - actor.swing / 0.32
     body.arm.rotation.set(0.15 - u * 0.85, 0.2 - u * 0.15, -0.45 + u * 0.25)
     racquet.rotation.set(-0.25 - u * 0.7, 0.1, -0.55 + u * 0.7)

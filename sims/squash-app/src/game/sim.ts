@@ -9,6 +9,8 @@ import {
   type ServeSide,
 } from './court'
 import {
+  SERVE_POWER,
+  SHOT_POWER,
   gradeOf,
   inReach,
   serveVelocity,
@@ -44,8 +46,6 @@ export type Actor = {
   z: number
   swing: number
   swingType: ShotType | 'serve'
-  charging: boolean
-  charge: number
 }
 
 export type Ball = {
@@ -65,8 +65,8 @@ export type SoundEvent = { type: 'hit' | 'bounce' | 'fault' | 'score'; shot?: Sh
 export type SimInput = {
   moveX: number
   moveZ: number
-  chargeShot: ShotType | null
-  releaseShot: ShotType | null
+  /** Shot pressed this frame. Power comes from the shot, not from how long it is held. */
+  shot: ShotType | null
   serve: boolean
 }
 
@@ -109,10 +109,10 @@ const STEP = 1 / 120
 const SWING = 0.32
 const R = COURT.ballRadius
 const MOVE = 4.35
-const IDLE: SimInput = { moveX: 0, moveZ: 0, chargeShot: null, releaseShot: null, serve: false }
+const IDLE: SimInput = { moveX: 0, moveZ: 0, shot: null, serve: false }
 
 function actor(): Actor {
-  return { x: 0, z: 7.4, swing: 0, swingType: 'drive', charging: false, charge: 0 }
+  return { x: 0, z: 7.4, swing: 0, swingType: 'drive' }
 }
 
 function ball(): Ball {
@@ -214,10 +214,6 @@ function placeForServe(sim: Sim) {
   receiver.z = r.z - 0.15
   server.swing = 0
   receiver.swing = 0
-  server.charging = false
-  receiver.charging = false
-  server.charge = 0
-  receiver.charge = 0
 }
 
 function holdBall(sim: Sim) {
@@ -467,8 +463,6 @@ function strike(sim: Sim, side: Side, shot: ShotType | 'serve', power: number, a
   sim.serveLive = shot === 'serve'
   actor.swing = SWING
   actor.swingType = shot
-  actor.charging = false
-  actor.charge = 0
   sim.lastHit = { by: side, shot, grade, age: 0 }
   if (side === 'player') {
     sim.message = ''
@@ -494,25 +488,23 @@ function canStrike(sim: Sim, side: Side) {
 function tryPlayer(sim: Sim, input: SimInput) {
   const a = sim.player
   if (a.swing > 0) return
-  const serveNow = sim.phase === 'serve' && sim.server === 'player' && (input.serve || input.releaseShot !== null)
+  const serveNow = sim.phase === 'serve' && sim.server === 'player' && (input.serve || input.shot !== null)
   if (serveNow) {
-    strike(sim, 'player', 'serve', Math.max(0.62, a.charge || 0.7), input.moveX, null)
+    strike(sim, 'player', 'serve', SERVE_POWER, input.moveX, null)
     return
   }
-  if (!input.releaseShot) return
+  if (!input.shot) return
   if (!canStrike(sim, 'player')) return
-  const shot = input.releaseShot
+  const shot = input.shot
   const err = timingError(a.x, a.z, sim.ball)
   if (!inReach(a.x, a.z, sim.ball) || Math.abs(err) > 0.3) {
     a.swing = SWING
     a.swingType = shot
-    a.charging = false
-    a.charge = 0
     sim.message = 'Whiff'
     sim.messageTtl = 0.65
     return
   }
-  strike(sim, 'player', shot, Math.max(0.35, a.charge), input.moveX, gradeOf(err))
+  strike(sim, 'player', shot, SHOT_POWER[shot], input.moveX, gradeOf(err))
 }
 
 function tryAi(sim: Sim, dt: number) {
@@ -631,13 +623,6 @@ function substep(sim: Sim, input: SimInput, dt: number, edges: boolean) {
       holdBall(sim)
     }
     if (edges) tryPlayer(sim, input)
-    if (sim.phase === 'serve' && input.chargeShot && sim.player.swing <= 0) {
-      sim.player.charging = true
-      sim.player.charge = Math.min(1, sim.player.charge + dt / 0.48)
-      sim.player.swingType = input.chargeShot
-    } else if (sim.phase === 'serve' && !input.chargeShot) {
-      sim.player.charging = false
-    }
     tryAi(sim, dt)
     return
   }
@@ -666,14 +651,7 @@ function substep(sim: Sim, input: SimInput, dt: number, edges: boolean) {
     sim.opponent.x = oc.x
     sim.opponent.z = oc.z
 
-    if (edges && input.releaseShot) tryPlayer(sim, input)
-    else if (input.chargeShot && sim.player.swing <= 0) {
-      sim.player.charging = true
-      sim.player.charge = Math.min(1, sim.player.charge + dt / 0.48)
-      sim.player.swingType = input.chargeShot
-    } else if (!input.chargeShot) {
-      sim.player.charging = false
-    }
+    if (edges) tryPlayer(sim, input)
     sim.sinceHit += dt
     tryAi(sim, dt)
     return
@@ -703,11 +681,9 @@ export function stepSim(sim: Sim, input: SimInput, dt: number) {
     const frameInput: SimInput = {
       moveX: input.moveX,
       moveZ: input.moveZ,
-      chargeShot: input.chargeShot,
-      releaseShot: edges ? input.releaseShot : null,
+      shot: edges ? input.shot : null,
       serve: edges ? input.serve : false,
     }
-    if (frameInput.releaseShot || frameInput.serve) frameInput.chargeShot = null
     substep(sim, frameInput, STEP, edges)
     edges = false
     const phase = sim.phase as Phase
