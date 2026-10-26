@@ -4,7 +4,7 @@ function assert(cond: boolean, msg: string) {
   if (!cond) throw new Error(msg)
 }
 
-const idle: SimInput = { moveX: 0, moveZ: 0, chargeShot: null, releaseShot: null, serve: false }
+const idle: SimInput = { moveX: 0, moveZ: 0, shot: null, serve: false }
 
 function run(sim: Sim, input: SimInput, seconds: number) {
   const frames = Math.round(seconds * 60)
@@ -85,7 +85,7 @@ function driveHitsFront() {
   sim.ball.vx = 0
   sim.ball.vy = 0
   sim.ball.vz = 0.4
-  stepSim(sim, { ...idle, releaseShot: 'drive', moveX: 0 }, 1 / 60)
+  stepSim(sim, { ...idle, shot: 'drive', moveX: 0 }, 1 / 60)
   assert(sim.lastHitter === 'player', 'drive should connect, message ' + sim.message + ' phase ' + sim.phase)
   assert(sim.lastHit?.grade === 'perfect' || sim.lastHit?.grade === 'good', 'grade ' + sim.lastHit?.grade)
   let sawFront = false

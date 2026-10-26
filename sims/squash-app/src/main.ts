@@ -64,8 +64,6 @@ const rallyLabel = document.querySelector<HTMLSpanElement>('#rally-label')!
 const turnLabel = document.querySelector<HTMLSpanElement>('#turn-label')!
 const message = document.querySelector<HTMLDivElement>('#message')!
 const feedback = document.querySelector<HTMLDivElement>('#feedback')!
-const charge = document.querySelector<HTMLDivElement>('#charge')!
-const chargeFill = document.querySelector<HTMLDivElement>('#charge-fill')!
 const tutorial = document.querySelector<HTMLDivElement>('#tutorial')!
 const tutStepEl = document.querySelector<HTMLSpanElement>('#tut-step')!
 const tutText = document.querySelector<HTMLSpanElement>('#tut-text')!
@@ -81,7 +79,7 @@ const muteBtn = document.querySelector<HTMLButtonElement>('#btn-mute')!
 
 const TIPS = [
   'Press Space to serve from the highlighted box.',
-  'Hold K to charge a drive, then release as the ball arrives. A and D aim it.',
+  'Press K for a drive as the ball arrives. A and D aim it.',
   'J cross, U drop, L lob, I boast. WASD runs the court. Sideways alignment is automatic.',
 ]
 let tutStep = 0
@@ -90,8 +88,7 @@ let feedbackToken = ''
 let resultShown = false
 
 const down = new Set<string>()
-let held: ShotType | null = null
-let release: ShotType | null = null
+let shotEdge: ShotType | null = null
 let serveEdge = false
 let joyActive = false
 let joyX = 0
@@ -182,18 +179,10 @@ for (const shot of SHOT_KEYS) {
   btn.addEventListener('pointerdown', (e) => {
     e.preventDefault()
     audio.resume()
-    held = shot.type
+    shotEdge = shot.type
     btn.classList.add('active')
-    btn.setPointerCapture(e.pointerId)
+    window.setTimeout(() => btn.classList.remove('active'), 160)
   })
-  const releaseBtn = (e: PointerEvent) => {
-    if (held === shot.type) release = shot.type
-    held = null
-    btn.classList.remove('active')
-    if (btn.hasPointerCapture(e.pointerId)) btn.releasePointerCapture(e.pointerId)
-  }
-  btn.addEventListener('pointerup', releaseBtn)
-  btn.addEventListener('pointercancel', releaseBtn)
   shotPad.append(btn)
 }
 
@@ -256,16 +245,16 @@ window.addEventListener('keydown', (e) => {
   audio.resume()
   down.add(e.code)
   const shot = shotByCode.get(e.code)
-  if (shot && held === null) held = shot
+  if (shot) {
+    shotEdge = shot
+    shotPad.querySelector<HTMLButtonElement>(`[data-shot="${shot}"]`)?.classList.add('active')
+  }
   if (e.code === 'Space') serveEdge = true
 })
 window.addEventListener('keyup', (e) => {
   down.delete(e.code)
   const shot = shotByCode.get(e.code)
-  if (shot && held === shot) {
-    release = shot
-    held = null
-  }
+  if (shot) shotPad.querySelector<HTMLButtonElement>(`[data-shot="${shot}"]`)?.classList.remove('active')
 })
 
 document.querySelector('#btn-play')!.addEventListener('click', beginPlaying)
@@ -365,8 +354,7 @@ function readInput() {
   const input = {
     moveX,
     moveZ,
-    chargeShot: held,
-    releaseShot: release,
+    shot: shotEdge,
     serve: serveEdge,
   }
   return input
@@ -397,7 +385,7 @@ function syncTutorial() {
   const tips = touch
     ? [
         'Tap Serve from the highlighted box.',
-        'Hold Drive, then release as the ball arrives. The stick aims it.',
+        'Tap Drive as the ball arrives. The stick aims it.',
         'Cross, Drop, Lob, and Boast are on the right. The stick runs the court.',
       ]
     : TIPS
@@ -424,8 +412,6 @@ function syncHud() {
   turnLabel.textContent = turnText(sim)
   message.textContent = sim.message
   message.classList.toggle('fault', sim.phase === 'pointOver' && sim.matchState === 'playing')
-  charge.hidden = !(sim.player.charging || (sim.player.charge > 0.02 && sim.player.swing <= 0))
-  chargeFill.style.width = `${Math.round(sim.player.charge * 100)}%`
   serveBtn.hidden = !(sim.matchState === 'playing' && sim.phase === 'serve' && sim.server === 'player')
 
   const hit = sim.lastHit
@@ -441,10 +427,6 @@ function syncHud() {
       feedback.hidden = false
       feedback.className = `feedback ${hit.grade}`
     }
-  }
-
-  for (const btn of shotPad.querySelectorAll<HTMLButtonElement>('.shot-btn')) {
-    btn.classList.toggle('active', btn.dataset.shot === held)
   }
 
   if (sim.matchState === 'gameover' && !resultShown) {
@@ -471,12 +453,15 @@ muteBtn.textContent = settings.sound ? '🔊' : '🔇'
 addEventListener('resize', () => view.resize())
 
 let last = performance.now()
+/** Wall-clock scale. Ball, running, swings, and the AI all use this. */
+const PACE = 0.58
+
 function frame(now: number) {
-  const dt = Math.min(0.05, (now - last) / 1000)
+  const dt = Math.min(0.05, ((now - last) / 1000) * PACE)
   last = now
   const input = readInput()
   stepSim(sim, input, dt)
-  release = null
+  shotEdge = null
   serveEdge = false
   if (!audio.muted) {
     for (const sound of sim.sounds) {

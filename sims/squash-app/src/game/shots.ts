@@ -13,7 +13,7 @@ export type ShotKey = {
   sub: string
 }
 
-/** Same hold-to-charge layout as a five-button shot pad: cross, drive, drop, lob, boast. */
+/** Five-button shot pad: cross, drive, drop, lob, boast. */
 export const SHOT_KEYS: ShotKey[] = [
   { type: 'cross', code: 'KeyJ', key: 'J', label: 'Cross', sub: 'Angle' },
   { type: 'drive', code: 'KeyK', key: 'K', label: 'Drive', sub: 'Length' },
@@ -21,6 +21,17 @@ export const SHOT_KEYS: ShotKey[] = [
   { type: 'lob', code: 'KeyL', key: 'L', label: 'Lob', sub: 'High' },
   { type: 'boast', code: 'KeyI', key: 'I', label: 'Boast', sub: 'Side wall' },
 ]
+
+/** Each shot carries its own pace. The player does not charge it. */
+export const SHOT_POWER: Record<ShotType, number> = {
+  drive: 0.82,
+  cross: 0.78,
+  drop: 0.38,
+  lob: 0.92,
+  boast: 0.7,
+}
+
+export const SERVE_POWER = 0.7
 
 /** Vertical pace as the ball arrives on the front wall. Negative means it is dropping in. */
 const ARRIVE: Record<ShotType, number> = {
