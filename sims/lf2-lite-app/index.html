@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#0b1220" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>LF2 Lite — Little Fighter inspired</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="top">
+        <a class="back" href="../../">← Playground</a>
+        <h1>LF2 Lite</h1>
+        <span class="pill">fan demo</span>
+      </header>
+
+      <div id="stage-wrap">
+        <canvas id="game" width="960" height="540"></canvas>
+
+        <div id="hud" class="hidden">
+          <div class="fighter-hud" id="player-hud">
+            <div class="name" id="player-name">Blaze</div>
+            <div class="bar hp"><div class="fill" id="player-hp"></div></div>
+            <div class="bar mp"><div class="fill" id="player-mp"></div></div>
+          </div>
+          <div class="wave" id="wave-label">Stage 1</div>
+          <div class="fighter-hud enemy" id="enemy-hud">
+            <div class="name" id="enemy-name">Enemies</div>
+            <div class="bar hp"><div class="fill" id="enemy-hp"></div></div>
+          </div>
+        </div>
+
+        <div id="touch" class="hidden">
+          <div class="dpad">
+            <button type="button" data-key="left" aria-label="Left">◀</button>
+            <button type="button" data-key="right" aria-label="Right">▶</button>
+            <button type="button" data-key="jump" aria-label="Jump">⬆</button>
+          </div>
+          <div class="actions">
+            <button type="button" data-key="attack" class="atk" aria-label="Attack">A</button>
+            <button type="button" data-key="special" class="sp" aria-label="Special">SP</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="overlay">
+        <div class="panel" id="panel-select">
+          <p class="eyebrow">Little Fighter–inspired</p>
+          <h2>Pick a fighter</h2>
+          <p class="body">Original pixel art · one stage · AI enemies. Specials are a single button (no D+direction combos).</p>
+          <div id="roster" class="roster"></div>
+          <p class="hint">← → move · Space jump · Z attack · X special</p>
+          <button type="button" id="btn-start" class="btn primary" disabled>Fight!</button>
+        </div>
+        <div class="panel hidden" id="panel-end">
+          <p class="eyebrow" id="end-eyebrow">Result</p>
+          <h2 id="end-title">Victory</h2>
+          <p class="body" id="end-body">All enemies defeated.</p>
+          <button type="button" id="btn-restart" class="btn primary">Play again</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

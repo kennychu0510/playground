@@ -1,0 +1,59 @@
+{
+  "frameWidth": 48,
+  "frameHeight": 64,
+  "frames": [
+    "idle0",
+    "idle1",
+    "walk0",
+    "walk1",
+    "jump",
+    "attack0",
+    "attack1",
+    "special0",
+    "special1",
+    "hurt",
+    "ko"
+  ],
+  "note": "Original pixel art for LF2 Lite fan demo. Not Little Fighter 2 assets.",
+  "characters": [
+    {
+      "id": "blaze",
+      "name": "Blaze",
+      "role": "Melee fighter (Davis-inspired)",
+      "sheet": "blaze.png",
+      "style": "melee",
+      "hp": 120,
+      "mp": 80,
+      "speed": 2.4,
+      "attack": 12,
+      "specialCost": 22,
+      "specialDmg": 28
+    },
+    {
+      "id": "edge",
+      "name": "Edge",
+      "role": "Swordsman (Deep-inspired)",
+      "sheet": "edge.png",
+      "style": "sword",
+      "hp": 110,
+      "mp": 70,
+      "speed": 2.2,
+      "attack": 14,
+      "specialCost": 20,
+      "specialDmg": 32
+    },
+    {
+      "id": "prism",
+      "name": "Prism",
+      "role": "Energy mage (John-inspired)",
+      "sheet": "prism.png",
+      "style": "mage",
+      "hp": 95,
+      "mp": 110,
+      "speed": 2,
+      "attack": 10,
+      "specialCost": 18,
+      "specialDmg": 26
+    }
+  ]
+}
