@@ -3,74 +3,111 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
-  <meta name="description" content="Beam Trace — draw one continuous steel beam and walk it from start to goal." />
-  <meta name="theme-color" content="#0b1220" />
-  <title>Beam Trace — Playground</title>
+  <meta name="description" content="One-Stroke Beam Walk — draw a steel path, walk it high above the city. Don't fall." />
+  <meta name="theme-color" content="#f3e9d2" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>One-Stroke Beam Walk — Playground</title>
   <link rel="stylesheet" href="style.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
 </head>
 <body>
-  <div id="app">
-    <header class="top">
-      <div class="title-block">
-        <a class="back" href="../../">← Playground</a>
-        <h1>Beam Trace</h1>
-      </div>
-      <div class="hud" aria-live="polite">
-        <span id="hud-stage">Stage 1/5</span>
-        <span id="hud-time">0.00 s</span>
-      </div>
-    </header>
+  <div id="page">
+    <a class="back-link" href="../../">← Playground</a>
 
-    <div id="stage-wrap">
-      <canvas id="scene" width="540" height="720" aria-label="Beam Trace game canvas"></canvas>
+    <div id="game-shell">
+      <!-- Draw phase (2D top-down) -->
+      <canvas id="draw-canvas" width="540" height="960" aria-label="Draw your beam"></canvas>
+      <!-- Walk phase (3D) -->
+      <canvas id="walk-canvas" width="540" height="960" aria-hidden="true"></canvas>
 
-      <div id="panel-intro" class="panel">
-        <h2>Beam Trace</h2>
-        <p class="lead">
-          Draw <strong>one continuous stroke</strong> from the green START pad
-          to the gold GOAL. Your line becomes steel — a walker then follows it.
-          Leave the beam or miss the goal and you fall.
-        </p>
-        <ul class="rules">
-          <li>Start on the START pad, finish on the GOAL pad</li>
-          <li>One stroke only — lift ends the beam</li>
-          <li>Bridge gaps; avoid solid blocks</li>
-          <li>5 short stages · beat the clock</li>
-        </ul>
-        <button type="button" class="btn" id="btn-start">Start drawing</button>
-        <p class="hint">Touch or mouse · works offline once loaded</p>
+      <!-- HUD -->
+      <div id="hud" class="hidden" aria-live="polite">
+        <div class="hud-row">
+          <div class="badge stage" id="hud-stage">STAGE 1/6</div>
+          <div class="timer-block">
+            <span class="timer-label">TIME</span>
+            <span class="timer-value" id="hud-time">0.00</span>
+          </div>
+          <div class="badge alt" id="hud-alt">ALT 120m</div>
+        </div>
+        <div class="hint-banner" id="hint-banner">Draw from your feet to GOAL in one stroke!</div>
+        <div class="walk-stats hidden" id="walk-stats">
+          <span id="hud-speed">0 km/h</span>
+          <span class="dot">·</span>
+          <span id="hud-gait">toddle</span>
+          <button type="button" class="ff-btn" id="btn-ff" title="Fast forward">▶▶</button>
+        </div>
       </div>
 
-      <div id="panel-fail" class="panel hidden">
-        <h2>Fell!</h2>
-        <p class="lead" id="fail-msg">Off the beam.</p>
-        <p class="statline">Time <span id="fail-time">0.00</span>s</p>
-        <button type="button" class="btn" id="btn-retry">Try again</button>
-        <button type="button" class="btn secondary" id="btn-redraw">Redraw</button>
+      <!-- Title -->
+      <div id="panel-title" class="overlay">
+        <div class="title-card">
+          <p class="eyebrow">playground · english remake</p>
+          <h1>One-Stroke<br /><span>Beam Walk</span></h1>
+          <p class="tagline">Draw it. Walk the steel. Don’t fall.</p>
+          <ol class="howto">
+            <li>Draw one continuous line from your feet to the GOAL.</li>
+            <li>Walk exactly as you drew — faster draw means faster walk.</li>
+            <li>Fall and it’s over. Race total time across 6 stages.</li>
+          </ol>
+          <button type="button" class="btn primary" id="btn-start">Start</button>
+        </div>
       </div>
 
-      <div id="panel-clear" class="panel hidden">
-        <h2>Clear!</h2>
-        <p class="lead" id="clear-msg">Stage complete.</p>
-        <p class="statline">Time <span id="clear-time">0.00</span>s</p>
-        <button type="button" class="btn" id="btn-next">Next stage</button>
-        <button type="button" class="btn secondary" id="btn-replay">Replay stage</button>
+      <!-- Clear flash -->
+      <div id="panel-clear" class="overlay hidden">
+        <div class="result-card clear">
+          <div class="ribbon ok">CLEAR!</div>
+          <p class="big-time"><span id="clear-time">0.00</span><small>s</small></p>
+          <p class="sub" id="clear-sub">Stage 1 · 120m</p>
+          <button type="button" class="btn primary" id="btn-next">Next stage</button>
+        </div>
       </div>
 
-      <div id="panel-done" class="panel hidden">
-        <h2>All clear</h2>
-        <p class="lead">You bridged every gap.</p>
-        <p class="statline">Total <span id="done-time">0.00</span>s</p>
-        <button type="button" class="btn" id="btn-again">Play again</button>
+      <!-- Fall result -->
+      <div id="panel-fail" class="overlay hidden">
+        <div class="result-card fail">
+          <div class="ribbon bad" id="fail-ribbon">Fell at Stage 1…</div>
+          <p class="big-time"><span id="fail-time">0.00</span><small>s</small></p>
+          <p class="sub" id="fail-sub">120m · 0 stages cleared</p>
+          <div class="stage-pips" id="fail-pips" aria-hidden="true"></div>
+          <div class="btn-row">
+            <button type="button" class="btn primary" id="btn-retry">Try again</button>
+            <button type="button" class="btn ghost" id="btn-see-line">See drawn line</button>
+          </div>
+          <button type="button" class="btn ghost" id="btn-title">Title</button>
+        </div>
       </div>
-    </div>
 
-    <div id="dock" aria-label="Controls">
-      <button type="button" class="btn ghost" id="btn-undo" disabled>Undo point</button>
-      <button type="button" class="btn ghost" id="btn-clear" disabled>Clear line</button>
-      <button type="button" class="btn secondary" id="btn-restart">Restart stage</button>
+      <!-- Line review (2D) -->
+      <div id="panel-review" class="overlay hidden">
+        <div class="review-card">
+          <div class="ribbon bad" id="review-ribbon">Fell at the ✕ mark</div>
+          <canvas id="review-canvas" width="540" height="720"></canvas>
+          <button type="button" class="btn ghost" id="btn-review-back">← Back</button>
+        </div>
+      </div>
+
+      <!-- All clear -->
+      <div id="panel-done" class="overlay hidden">
+        <div class="result-card clear">
+          <div class="ribbon ok">ALL CLEAR</div>
+          <p class="big-time"><span id="done-time">0.00</span><small>s</small></p>
+          <p class="sub">You walked every beam.</p>
+          <button type="button" class="btn primary" id="btn-again">Play again</button>
+          <button type="button" class="btn ghost" id="btn-done-title">Title</button>
+        </div>
+      </div>
     </div>
   </div>
-  <script src="game.js"></script>
+
+  <script type="module" src="game.js"></script>
 </body>
 </html>
