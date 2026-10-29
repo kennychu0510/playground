@@ -38,4 +38,5 @@ Save. The site is published at https://kennychu0510.github.io/playground/ . The 
 
 | Sim | Path | What it is |
 |-----|------|------------|
+| Beam Trace | [`sims/beam-trace/`](sims/beam-trace/) | Draw one continuous steel beam and walk it from START to GOAL. |
 | Dragonboat Lab | [`sims/dragonboat/`](sims/dragonboat/) | Tune paddle stroke length, depth, angle, and rate; race 100 m. |
