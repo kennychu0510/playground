@@ -40,3 +40,13 @@ Save. The site is published at https://kennychu0510.github.io/playground/ . The 
 |-----|------|------------|
 | Beam Trace | [`sims/beam-trace/`](sims/beam-trace/) | Draw one continuous steel beam and walk it from START to GOAL. |
 | Dragonboat Lab | [`sims/dragonboat/`](sims/dragonboat/) | Tune paddle stroke length, depth, angle, and rate; race 100 m. |
+
+## Guides
+
+| Guide | Path | What it is |
+| --- | --- | --- |
+| Outlanders Field Guide | [`outlanders-guide/`](outlanders-guide/) | Unofficial bilingual field guide to 23 officially named Monster Hunter Outlanders monsters. English and Traditional Chinese names stay on every card. |
+
+**Guide:** https://kennychu0510.github.io/playground/outlanders-guide/
+
+The guide is static files in the repo. `outlanders-guide/scripts/build_site.py` rebuilds `index.html` from `src/` and `data/` when those sources change. It does not change the hub or the sims.

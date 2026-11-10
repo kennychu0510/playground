@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Unofficial bilingual English and Traditional Chinese field guide to officially named Monster Hunter Outlanders monsters.">
+  <title>Monster Hunter Outlanders Field Guide — Monsters</title>
+  <style>/*__CSS__*/</style>
+  <style>:root{--hero:url("__HERO__")}</style>
+</head>
+<body>
+  <a class="skip" href="#roster">Skip to monster roster</a>
+  <header class="top">
+    <div class="wrap top-inner">
+      <a class="brand" href="#top">
+        <img src="__LOGO__" width="52" height="37" alt="Monster Hunter Outlanders">
+        <span class="brand-text">
+          <span class="brand-kicker" data-i18n="brandKicker">Unofficial fan guide</span>
+          <span class="brand-title" data-i18n="brandTitle">Outlanders Field Guide</span>
+        </span>
+      </a>
+      <nav class="nav-future" aria-label="Guide sections">
+        <a href="#roster" aria-current="page" data-i18n="navMonsters">Monsters</a>
+        <span class="soon" data-nav-soon data-i18n="navSoonA">Adventurers</span>
+        <span class="soon" data-nav-soon data-i18n="navSoonB">Weapons</span>
+      </nav>
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" data-lang-btn="en" aria-pressed="true">English</button>
+        <button type="button" data-lang-btn="zh" aria-pressed="false">繁體中文</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-art" aria-hidden="true"></div>
+      <div class="wrap hero-inner">
+        <p class="eyebrow">Monster Hunter Outlanders · 魔物獵人：旅人</p>
+        <h1 data-i18n="h1">The monsters of Aesoland</h1>
+        <p class="lede" data-i18n="lede"></p>
+        <div class="pills">
+          <span class="pill">23 officially named</span>
+          <span class="pill">10 Nov 2026 · Hong Kong time</span>
+          <span class="pill">Unofficial fan guide</span>
+        </div>
+        <p class="notice" data-i18n="notice"></p>
+      </div>
+    </section>
+
+    <div class="wrap">
+      <div class="section-head">
+        <h2 data-i18n="elderHead">Elder Dragons</h2>
+        <p data-i18n="elderSub"></p>
+      </div>
+      <div class="elder-grid" id="elder-grid"></div>
+
+      <div class="section-head" id="roster">
+        <h2 data-i18n="rosterHead">Officially named large monsters</h2>
+        <p id="count" class="count"></p>
+      </div>
+      <div class="toolbar">
+        <div class="search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/></svg>
+          <input id="search" type="search" autocomplete="off" spellcheck="false" data-i18n="searchPh" aria-label="Search monsters">
+        </div>
+        <div class="filters" id="filters" role="toolbar" aria-label="Monster category"></div>
+      </div>
+      <div class="grid" id="grid"></div>
+      <p class="empty" id="empty"></p>
+    </div>
+  </main>
+
+  <div class="modal-root" id="modal" hidden>
+    <div class="backdrop" id="backdrop"></div>
+    <div class="dialog" id="dialog" role="dialog" aria-modal="true"></div>
+  </div>
+
+  <footer>
+    <div class="wrap">
+      <h2 data-i18n="footerSources">Primary sources</h2>
+      <ul class="source-list" id="source-list"></ul>
+      <p class="legal" data-i18n="footerLegal"></p>
+      <p class="legal"><a href="../">Kenny’s playground</a></p>
+    </div>
+  </footer>
+
+  <script type="application/json" id="guide-data">__GUIDE_DATA__</script>
+  <script>window.GUIDE_SOURCES = __SOURCES__;</script>
+  <script>/*__JS__*/</script>
+  <script>
+    (function () {
+      const sources = window.GUIDE_SOURCES || [];
+      const ul = document.getElementById("source-list");
+      const langBtns = () => document.documentElement.dataset.lang === "zh" ? "zh" : "en";
+      function render() {
+        const lang = langBtns();
+        ul.innerHTML = sources.map(function (s) {
+          const title = (s.title && (s.title[lang] || s.title.en)) || s.url;
+          const date = s.date ? " (" + s.date + ")" : "";
+          return "<li><a href=\"" + s.url + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + title.replace(/</g,"") + "</a>" + date + "</li>";
+        }).join("");
+      }
+      render();
+      document.querySelectorAll("[data-lang-btn]").forEach(function (b) {
+        b.addEventListener("click", function () { setTimeout(render, 0); });
+      });
+    })();
+  </script>
+</body>
+</html>
