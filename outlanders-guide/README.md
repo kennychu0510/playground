@@ -24,6 +24,12 @@ Then open <http://127.0.0.1:8080/outlanders-guide/>.
 
 The opening section is the **monster roster** (the “dragons,” interpreted broadly). Only three species are classified as **Elder Dragons**: Ruger Aidal（光稜龍）, Kushala Daora（鋼龍）, and Nergigante（滅盡龍）. Everything else is filtered as Radiant（融光種）, standard（通常種）, or subspecies（亞種）.
 
+The page shows English and Traditional Chinese together. There is no language switch.
+
+Monster posters are the full 16:9 official images, fitted with `object-fit: contain` so heads, wings, and tails stay inside the frame.
+
+Later sections cover the featured adventurers and buddies, the weapons named in official materials, what was published about Aesoland, and hunting, parties, and launch notes. Each section cites its sources and says when Traditional Chinese is only a provisional translation.
+
 The guide lists **23** large monsters that were **officially named** on:
 
 - the official Outlanders website and its Traditional Chinese locale file, or

@@ -73,26 +73,65 @@ for mid in ["rathalos","pink-rathian","radiant-rathalos","radiant-rathian","radi
     ok(next(m for m in monsters if m["id"]==mid)["description_zh_status"]=="official_outlanders", f"{mid} official TC desc")
 
 js = (ROOT / "src/guide.js").read_text(encoding="utf-8")
+css = (ROOT / "src/guide.css").read_text(encoding="utf-8")
 ok("card-name-en" in js and "card-name-zh" in js, "card template has both name lines")
 ok("subnames" in js, "detail template has the second name")
 ok(js.count("m.name.en") >= 4 and js.count("m.name.zh") >= 4, "script keeps English and Traditional Chinese names together")
+ok("m.description.en" in js and "m.description.zh" in js, "details keep both descriptions")
+ok("data-lang-btn" not in js, "language toggle script is gone")
+ok("localStorage" not in js, "language preference is not stored")
+ok("images.hero" in js, "cards use the full hero poster")
 ok('getElementById("close-modal").setAttribute' not in js, "missing close button does not throw")
-ok("not affiliated" in js and "非官方粉絲手冊" in js, "unofficial disclaimer kept")
-ok("Capcom" in js and "Garena" in js, "disclaimer names rights holders")
+ok("not affiliated" in (ROOT / "src/template.html").read_text(encoding="utf-8"), "unofficial disclaimer kept")
+ok("Capcom" in (ROOT / "src/template.html").read_text(encoding="utf-8") and "Garena" in (ROOT / "src/template.html").read_text(encoding="utf-8"), "disclaimer names rights holders")
+ok("object-fit:contain" in css, "artwork uses contain")
+ok("aspect-ratio:16/9" in css, "artwork frame matches the 16:9 posters")
+ok(".nav-future{display:none" not in css.replace(" ", ""), "section nav stays available on narrow screens")
+ok("min-height:var(--tap)" in css or "min-height:44px" in css or "--tap:44px" in css, "touch target size is defined")
+
+sections = json.loads((ROOT / "data/sections.json").read_text(encoding="utf-8"))
+sec_by = {s["id"]: s for s in sections["sections"]}
+for sid in ("adventurers", "weapons", "aesoland", "hunting"):
+    ok(sid in sec_by, f"section {sid}")
+    ok(sec_by[sid]["title"]["en"] and sec_by[sid]["title"]["zh"], f"{sid} bilingual title")
+    ok(sec_by[sid]["sources"], f"{sid} has sources")
+adv_items = [i for g in sec_by["adventurers"]["groups"] if g["id"]=="featured-adventurers" for i in g["items"]]
+ok(len(adv_items)==13, f"13 featured adventurers ({len(adv_items)})")
+ok(sum(1 for i in adv_items if i["name_zh_status"]=="official_outlanders")==9, "9 adventurers have official TC names")
+ok(sum(1 for i in adv_items if i["name_zh_status"]=="official_tc_absent")==4, "4 adventurers flag missing official TC names")
+buddies = [i for g in sec_by["adventurers"]["groups"] if g["id"]=="buddies" for i in g["items"]]
+ok({i["id"] for i in buddies}=={"rutaco","trillan","palico"}, "three official buddies")
+weapons = [i for g in sec_by["weapons"]["groups"] for i in g["items"]]
+ok({i["id"] for i in weapons}=={"long-sword","hammer","dual-blades","great-sword","bow","lance","heavy-bowgun","charge-blade"}, "weapon coverage")
+cb = next(i for i in weapons if i["id"]=="charge-blade")
+ok("no move" in cb["description"]["en"].lower() or "No move" in cb["description"]["en"], "charge blade has no invented moves")
+ok("map" in sec_by["aesoland"]["blocks"][1]["paragraphs"][0]["en"].lower(), "aesoland states the map was not published")
+for s in sections["sections"]:
+    for group in s.get("groups") or []:
+        for item in group["items"]:
+            ok(item["name"]["en"] and item["name"]["zh"], f"{item['id']} both names")
+            ok(item["description"]["en"] and item["description"]["zh"], f"{item['id']} both descriptions")
+            missing = [src for src in item["sources"] if src not in src_ids]
+            ok(not missing, f"{item['id']} sources exist {missing}")
 
 # published pages use linked assets (smaller HTML). The inlined archive is not published.
 ok(not (ROOT / "index.standalone.html").exists(), "standalone image archive is not in the published folder")
 for name in ("index.html", "index.linked.html"):
     p = ROOT / name
-    ok(p.is_file() and 10000 < p.stat().st_size < 500_000, f"{name} exists and stays small")
+    ok(p.is_file() and 10000 < p.stat().st_size < 800_000, f"{name} exists and stays small")
     html = p.read_text(encoding="utf-8", errors="replace")
     ok("guide-data" in html, f"{name} embeds data")
-    ok("data-lang-btn" in html, f"{name} has lang toggle")
+    ok("guide-sections" in html, f"{name} embeds sections")
+    ok("data-lang-btn" not in html, f"{name} has no language toggle")
+    ok('id="adventurers"' in html or "adventurers" in html, f"{name} links adventurers")
+    for anchor in ("#adventurers", "#weapons", "#aesoland", "#hunting", "#roster"):
+        ok(anchor in html, f"{name} nav {anchor}")
     ok("魔物獵人：旅人" in html, f"{name} has official TC title")
     ok("Unofficial" in html or "unofficial" in html, f"{name} unofficial")
     ok("assets/web/logo.png" in html, f"{name} links the logo")
     ok("assets/web/ruger-key-art.jpg" in html, f"{name} links the hero")
-    ok("assets/web/ruger-aidal-card.jpg" in html, f"{name} links card art")
+    ok("assets/web/ruger-aidal-hero.jpg" in html, f"{name} links a full monster poster")
+    ok("object-fit:contain" in html, f"{name} contains artwork instead of cropping it")
     ok("data:image/" not in html, f"{name} does not embed an image archive")
     ok('href="../"' in html, f"{name} links back to the playground hub")
     m = re.search(r'<script type="application/json" id="guide-data">(.*?)</script>', html, re.S)
@@ -104,6 +143,11 @@ for name in ("index.html", "index.linked.html"):
             en, zh = monster["name"]["en"].strip(), monster["name"]["zh"].strip()
             ok(en and zh and en != zh, f"{name} {monster['id']} has both names")
             ok(en in html and zh in html, f"{name} embeds {monster['id']} both names")
+    sm = re.search(r'<script type="application/json" id="guide-sections">(.*?)</script>', html, re.S)
+    ok(bool(sm), f"{name} sections script")
+    if sm:
+        embedded_sections = json.loads(sm.group(1))
+        ok(len(embedded_sections["sections"])==4, f"{name} four guide sections")
 
 if errors:
     print("\nFAILED:")

@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path("/workspace/outlanders-guide")
 SRC = ROOT / "src"
 DATA = json.loads((ROOT / "data/monsters.json").read_text(encoding="utf-8"))
+SECTIONS = json.loads((ROOT / "data/sections.json").read_text(encoding="utf-8"))
 SOURCES = json.loads((ROOT / "data/sources.json").read_text(encoding="utf-8"))["sources"]
 CSS = (SRC / "guide.css").read_text(encoding="utf-8")
 JS = (SRC / "guide.js").read_text(encoding="utf-8")
@@ -34,6 +35,7 @@ def assemble(guide, logo_url, hero_url):
     html = html.replace("__HERO__", hero_url)
     html = html.replace("__LOGO__", logo_url)
     html = html.replace("__GUIDE_DATA__", json.dumps(guide, ensure_ascii=False, separators=(",", ":")))
+    html = html.replace("__SECTIONS__", json.dumps(SECTIONS, ensure_ascii=False, separators=(",", ":")))
     html = html.replace("__SOURCES__", json.dumps(SOURCES, ensure_ascii=False, separators=(",", ":")))
     return html
 

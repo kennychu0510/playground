@@ -256,6 +256,38 @@
       },
       "url": "https://www.monsterhunter.com/world-iceborne/hk/monster/",
       "accessed": "2026-11-10"
+    },
+    {
+      "id": "garena-launch-announce",
+      "kind": "official_announcement",
+      "title": {
+        "en": "Garena official English news: launch announcement and web pre-registration (24 July 2026)",
+        "zh": "Garena 官方英文新聞：公開發表與網頁事前登錄（2026年7月24日）"
+      },
+      "url": "https://mho.garena.com/en/news/4CWE5K",
+      "date": "2026-07-24",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "garena-hunting-faq",
+      "kind": "official_announcement",
+      "title": {
+        "en": "Garena official English Hunting FAQ (28 October 2026)",
+        "zh": "Garena 官方英文《Hunting FAQ》（2026年10月28日）"
+      },
+      "url": "https://mho.garena.com/en/news/MDTQCH",
+      "date": "2026-10-28",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "google-play-listing",
+      "kind": "official_store",
+      "title": {
+        "en": "Google Play listing for Monster Hunter Outlanders",
+        "zh": "Google Play 上的《魔物獵人：旅人》商店說明"
+      },
+      "url": "https://play.google.com/store/apps/details?id=com.tencent.mhadv&hl=en_US",
+      "accessed": "2026-11-10"
     }
   ]
 }

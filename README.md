@@ -45,7 +45,7 @@ Save. The site is published at https://kennychu0510.github.io/playground/ . The 
 
 | Guide | Path | What it is |
 | --- | --- | --- |
-| Outlanders Field Guide | [`outlanders-guide/`](outlanders-guide/) | Unofficial bilingual field guide to 23 officially named Monster Hunter Outlanders monsters. English and Traditional Chinese names stay on every card. |
+| Outlanders Field Guide | [`outlanders-guide/`](outlanders-guide/) | Unofficial field guide: 23 named monsters, featured adventurers, weapons, Aesoland, and hunting notes. English and Traditional Chinese stay together. |
 
 **Guide:** https://kennychu0510.github.io/playground/outlanders-guide/
 
