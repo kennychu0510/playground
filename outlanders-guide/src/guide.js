@@ -1,17 +1,10 @@
 (function () {
   const data = JSON.parse(document.getElementById("guide-data").textContent);
-  const sections = JSON.parse(document.getElementById("guide-sections").textContent);
   const sourcesById = Object.fromEntries((window.GUIDE_SOURCES || []).map((s) => [s.id, s]));
   const cats = Object.fromEntries(data.categories.map((c) => [c.id, c]));
   const classes = Object.fromEntries(data.species_classes.map((c) => [c.id, c]));
   const confirmLabels = data.confirmation_labels;
   const monsters = data.monsters.slice().sort((a, b) => a.sort - b.sort);
-  const peopleById = {};
-  sections.sections.forEach((section) => {
-    (section.groups || []).forEach((group) => {
-      (group.items || []).forEach((item) => { peopleById[item.id] = item; });
-    });
-  });
 
   const els = {
     search: document.getElementById("search"),
@@ -22,8 +15,6 @@
     empty: document.getElementById("empty"),
     modal: document.getElementById("modal"),
     dialog: document.getElementById("dialog"),
-    more: document.getElementById("more"),
-    sources: document.getElementById("source-list"),
   };
 
   let filter = "all";
@@ -197,111 +188,6 @@
     if (lastFocus && lastFocus.focus) lastFocus.focus();
   }
 
-  function textBlock(block) {
-    const editorial = block.editorial ? " editorial" : "";
-    const paras = (block.paragraphs || []).map((p) => {
-      const flag = p.zh_status === "provisional_translation"
-        ? `<p class="flag">${pair("Traditional Chinese in this paragraph is a provisional translation where the cited page is English.", "若引用頁是英文，本段繁體中文是臨時翻譯。")}</p>`
-        : "";
-      return `<p class="en">${esc(p.en)}</p><p class="zh" lang="zh-Hant">${esc(p.zh)}</p>${flag}`;
-    }).join("");
-    const label = block.editorial
-      ? `<p class="flag">${pair("Editorial note. This is not an official instruction and adds no unpublished game facts.", "編輯說明。這不是官方指示，也不補充未公布的遊戲事實。")}</p>`
-      : "";
-    return `<div class="block${editorial}"><h3>${pair(block.title.en, block.title.zh)}</h3>${label}<div class="prose">${paras}</div></div>`;
-  }
-
-  function personCard(item) {
-    const article = document.createElement("article");
-    article.className = "person";
-    article.id = "person-" + item.id;
-    const nameZhClass = item.name_zh_status === "official_tc_absent" ? "caveat-name" : "";
-    const chips = (item.chips || []).map((c) => {
-      const zhClass = c.zh_status === "official_tc_absent" ? "caveat-name" : "";
-      return `<span class="chip">${pair(c.en, c.zh, zhClass)}</span>`;
-    }).join("");
-    const descFlag = item.description_zh_status === "provisional_translation"
-      ? `<p class="flag">${pair("Traditional Chinese description is a provisional translation.", "繁體中文簡介是臨時翻譯。")}</p>`
-      : "";
-    const note = item.note ? `<p class="notes en">${esc(item.note.en)}</p><p class="notes zh" lang="zh-Hant">${esc(item.note.zh)}</p>` : "";
-    const links = (item.links || []).map((id) => {
-      const person = peopleById[id];
-      const label = person ? person.name.en : id;
-      return `<a href="#person-${esc(id)}">${esc(label)}</a>`;
-    }).join(" · ");
-    const linkRow = links ? `<p class="notes">${pair("Featured with", "對應介紹")} ${links}</p>` : "";
-    article.innerHTML = `
-      <div class="person-body">
-        <h3 class="person-name">${esc(item.name.en)}</h3>
-        <p class="card-name-zh ${nameZhClass}" lang="zh-Hant">${esc(item.name.zh)}</p>
-        <div class="chips">${chips}</div>
-        <p class="desc en">${esc(item.description.en)}</p>
-        <p class="desc zh" lang="zh-Hant">${esc(item.description.zh)}</p>
-        ${descFlag}
-        ${note}
-        ${linkRow}
-        <div class="cite"><ul>${sourceItems(item.sources)}</ul></div>
-      </div>`;
-    return article;
-  }
-
-  function renderSections() {
-    els.more.innerHTML = "";
-    const note = document.createElement("p");
-    note.className = "notice";
-    note.innerHTML = pair(sections.note.en, sections.note.zh);
-    els.more.appendChild(note);
-
-    sections.sections.forEach((section) => {
-      const sec = document.createElement("section");
-      sec.className = "guide-section";
-      sec.id = section.id;
-      const head = document.createElement("div");
-      head.className = "section-head";
-      head.innerHTML = `<h2>${pair(section.title.en, section.title.zh)}</h2>`;
-      sec.appendChild(head);
-      const lede = document.createElement("div");
-      lede.className = "lede";
-      lede.innerHTML = pair(section.lede.en, section.lede.zh);
-      sec.appendChild(lede);
-      (section.blocks || []).forEach((block) => sec.appendChild(htmlNode(textBlock(block))));
-      (section.groups || []).forEach((group) => {
-        const h = document.createElement("h3");
-        h.innerHTML = pair(group.title.en, group.title.zh);
-        sec.appendChild(h);
-        if (group.intro) {
-          const intro = document.createElement("div");
-          intro.className = "lede";
-          intro.innerHTML = pair(group.intro.en, group.intro.zh);
-          sec.appendChild(intro);
-        }
-        const grid = document.createElement("div");
-        grid.className = section.id === "weapons" ? "weapon-grid" : "people";
-        (group.items || []).forEach((item) => grid.appendChild(personCard(item)));
-        sec.appendChild(grid);
-      });
-      const cites = document.createElement("div");
-      cites.className = "cite";
-      cites.innerHTML = `<h3>${pair("Section sources", "本節出處")}</h3><ul>${sourceItems(section.sources)}</ul>`;
-      sec.appendChild(cites);
-      els.more.appendChild(sec);
-    });
-  }
-
-  function htmlNode(html) {
-    const wrap = document.createElement("div");
-    wrap.innerHTML = html;
-    return wrap.firstElementChild;
-  }
-
-  function renderSources() {
-    els.sources.innerHTML = (window.GUIDE_SOURCES || []).map((s) => {
-      const date = s.date ? ` (${esc(s.date)})` : "";
-      const title = s.title || {};
-      return `<li><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${pair(title.en || s.url, title.zh || title.en || s.url)}</a>${date}</li>`;
-    }).join("");
-  }
-
   const limits = data.meta.coverage_limits;
   const notice = document.getElementById("coverage");
   if (notice && limits) {
@@ -314,8 +200,6 @@
   renderFilters();
   renderElders();
   renderGrid();
-  renderSections();
-  renderSources();
 
   els.search.addEventListener("input", () => {
     query = els.search.value;

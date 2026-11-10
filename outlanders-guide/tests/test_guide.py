@@ -82,8 +82,9 @@ ok("data-lang-btn" not in js, "language toggle script is gone")
 ok("localStorage" not in js, "language preference is not stored")
 ok("images.hero" in js, "cards use the full hero poster")
 ok('getElementById("close-modal").setAttribute' not in js, "missing close button does not throw")
-ok("not affiliated" in (ROOT / "src/template.html").read_text(encoding="utf-8"), "unofficial disclaimer kept")
-ok("Capcom" in (ROOT / "src/template.html").read_text(encoding="utf-8") and "Garena" in (ROOT / "src/template.html").read_text(encoding="utf-8"), "disclaimer names rights holders")
+shell = (ROOT / "src/page.html").read_text(encoding="utf-8")
+ok("not affiliated" in shell, "unofficial disclaimer kept")
+ok("Capcom" in shell and "Garena" in shell, "disclaimer names rights holders")
 ok("object-fit:contain" in css, "artwork uses contain")
 ok("aspect-ratio:16/9" in css, "artwork frame matches the 16:9 posters")
 ok(".nav-future{display:none" not in css.replace(" ", ""), "section nav stays available on narrow screens")
@@ -114,40 +115,50 @@ for s in sections["sections"]:
             missing = [src for src in item["sources"] if src not in src_ids]
             ok(not missing, f"{item['id']} sources exist {missing}")
 
-# published pages use linked assets (smaller HTML). The inlined archive is not published.
+# Separate static pages. The roster does not embed the other chapters.
 ok(not (ROOT / "index.standalone.html").exists(), "standalone image archive is not in the published folder")
-for name in ("index.html", "index.linked.html"):
-    p = ROOT / name
-    ok(p.is_file() and 10000 < p.stat().st_size < 800_000, f"{name} exists and stays small")
-    html = p.read_text(encoding="utf-8", errors="replace")
-    ok("guide-data" in html, f"{name} embeds data")
-    ok("guide-sections" in html, f"{name} embeds sections")
-    ok("data-lang-btn" not in html, f"{name} has no language toggle")
-    ok('id="adventurers"' in html or "adventurers" in html, f"{name} links adventurers")
-    for anchor in ("#adventurers", "#weapons", "#aesoland", "#hunting", "#roster"):
-        ok(anchor in html, f"{name} nav {anchor}")
-    ok("魔物獵人：旅人" in html, f"{name} has official TC title")
-    ok("Unofficial" in html or "unofficial" in html, f"{name} unofficial")
-    ok("assets/web/logo.png" in html, f"{name} links the logo")
-    ok("assets/web/ruger-key-art.jpg" in html, f"{name} links the hero")
-    ok("assets/web/ruger-aidal-hero.jpg" in html, f"{name} links a full monster poster")
-    ok("object-fit:contain" in html, f"{name} contains artwork instead of cropping it")
-    ok("data:image/" not in html, f"{name} does not embed an image archive")
-    ok('href="../"' in html, f"{name} links back to the playground hub")
-    m = re.search(r'<script type="application/json" id="guide-data">(.*?)</script>', html, re.S)
-    ok(bool(m), f"{name} guide-data script")
-    if m:
-        embedded = json.loads(m.group(1))
-        ok(len(embedded["monsters"])==23, f"{name} 23 embedded monsters")
-        for monster in embedded["monsters"]:
-            en, zh = monster["name"]["en"].strip(), monster["name"]["zh"].strip()
-            ok(en and zh and en != zh, f"{name} {monster['id']} has both names")
-            ok(en in html and zh in html, f"{name} embeds {monster['id']} both names")
-    sm = re.search(r'<script type="application/json" id="guide-sections">(.*?)</script>', html, re.S)
-    ok(bool(sm), f"{name} sections script")
-    if sm:
-        embedded_sections = json.loads(sm.group(1))
-        ok(len(embedded_sections["sections"])==4, f"{name} four guide sections")
+ok("guide-sections" not in js, "monster script does not load other chapters")
+
+def page_text(rel):
+    return (ROOT / rel).read_text(encoding="utf-8")
+
+monsters_html = page_text("index.html")
+ok("guide-data" in monsters_html and "guide-sections" not in monsters_html, "roster page has monsters only")
+ok("米多麗" not in monsters_html and "Adventurers and Buddies" not in monsters_html, "roster page does not include later chapters")
+ok('href="adventurers/"' in monsters_html and 'href="weapons/"' in monsters_html, "roster nav uses real page paths")
+ok('href="#adventurers"' not in monsters_html, "roster nav is not an in-page anchor")
+ok(monsters_html.count('aria-current="page"') == 1 and 'href="./" aria-current="page"' in monsters_html, "roster marks itself current")
+ok('src="monsters.js"' in monsters_html and 'href="guide.css"' in monsters_html, "roster links shared files")
+ok("assets/web/ruger-key-art.jpg" in monsters_html and "assets/web/logo.png" in monsters_html, "roster asset paths")
+ok("data-lang-btn" not in monsters_html and "data:image/" not in monsters_html, "roster has no toggle or image archive")
+ok('href="../"' in monsters_html, "roster links back to the playground hub")
+embedded = json.loads(re.search(r'<script type="application/json" id="guide-data">(.*?)</script>', monsters_html, re.S).group(1))
+ok(len(embedded["monsters"]) == 23, "roster embeds 23 monsters")
+for monster in embedded["monsters"]:
+    en, zh = monster["name"]["en"].strip(), monster["name"]["zh"].strip()
+    ok(en and zh and en != zh, f"roster data {monster['id']} both names")
+
+pages = {
+    "adventurers/index.html": ["米多麗", "露塔可", "梅朵鸝", "艾露", "person-midori"],
+    "weapons/index.html": ["Charge Blade", "太刀", "No move description", "../adventurers/#person-midori"],
+    "aesoland/index.html": ["埃索島", "does not publish a labelled region map", "ziplines"],
+    "hunting/index.html": ["up to four", "Editorial note", "05:00:00"],
+}
+for rel, needles in pages.items():
+    text = page_text(rel)
+    ok("guide-data" not in text and "monsters.js" not in text, f"{rel} does not load the roster")
+    ok('href="../guide.css"' in text and 'src="../assets/web/logo.png"' in text, f"{rel} asset prefix")
+    ok('href="../../"' in text, f"{rel} hub link climbs two levels")
+    ok(text.count('aria-current="page"') == 1, f"{rel} one current nav item")
+    ok("not affiliated" in text and "非官方粉絲手冊" in text, f"{rel} disclaimer")
+    ok("data-lang-btn" not in text, f"{rel} no language toggle")
+    for needle in needles:
+        ok(needle in text, f"{rel} keeps {needle}")
+
+ok('href="./" aria-current="page"' in page_text("adventurers/index.html"), "adventurers page is current")
+ok("guide-sections" not in page_text("weapons/index.html"), "weapon page is not a bundle of every chapter")
+linked = page_text("index.linked.html")
+ok(len(linked) < 800 and 'url=./' in linked and "guide-data" not in linked, "old linked filename redirects to the roster")
 
 if errors:
     print("\nFAILED:")
