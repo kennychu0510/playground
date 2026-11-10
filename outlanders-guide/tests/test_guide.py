@@ -83,8 +83,9 @@ ok("localStorage" not in js, "language preference is not stored")
 ok("images.hero" in js, "cards use the full hero poster")
 ok('getElementById("close-modal").setAttribute' not in js, "missing close button does not throw")
 shell = (ROOT / "src/page.html").read_text(encoding="utf-8")
-ok("not affiliated" in shell, "unofficial disclaimer kept")
+ok("Unofficial" in shell and "非官方" in shell, "short unofficial line kept")
 ok("Capcom" in shell and "Garena" in shell, "disclaimer names rights holders")
+ok("Primary sources" not in shell and "主要來源" not in shell, "source catalogue is not in the page chrome")
 ok("object-fit:contain" in css, "artwork uses contain")
 ok("aspect-ratio:16/9" in css, "artwork frame matches the 16:9 posters")
 ok(".nav-future{display:none" not in css.replace(" ", ""), "section nav stays available on narrow screens")
@@ -130,6 +131,9 @@ ok('href="#adventurers"' not in monsters_html, "roster nav is not an in-page anc
 ok(monsters_html.count('aria-current="page"') == 1 and 'href="./" aria-current="page"' in monsters_html, "roster marks itself current")
 ok('src="monsters.js"' in monsters_html and 'href="guide.css"' in monsters_html, "roster links shared files")
 ok("assets/web/ruger-key-art.jpg" in monsters_html and "assets/web/logo.png" in monsters_html, "roster asset paths")
+visible = monsters_html.split("<script", 1)[0]
+ok("Researched 10 November" not in visible and "Primary sources" not in visible, "roster reading flow skips the research essay")
+ok("icons.svg#monsters" in monsters_html, "roster nav has an icon")
 ok("data-lang-btn" not in monsters_html and "data:image/" not in monsters_html, "roster has no toggle or image archive")
 ok('href="../"' in monsters_html, "roster links back to the playground hub")
 embedded = json.loads(re.search(r'<script type="application/json" id="guide-data">(.*?)</script>', monsters_html, re.S).group(1))
@@ -139,10 +143,10 @@ for monster in embedded["monsters"]:
     ok(en and zh and en != zh, f"roster data {monster['id']} both names")
 
 pages = {
-    "adventurers/index.html": ["米多麗", "露塔可", "梅朵鸝", "艾露", "person-midori"],
-    "weapons/index.html": ["Charge Blade", "太刀", "No move description", "../adventurers/#person-midori"],
-    "aesoland/index.html": ["埃索島", "does not publish a labelled region map", "ziplines"],
-    "hunting/index.html": ["up to four", "Editorial note", "05:00:00"],
+    "adventurers/index.html": ["米多麗", "露塔可", "梅朵鸝", "艾露", "person-midori", "icons.svg#adventurers"],
+    "weapons/index.html": ["Charge Blade", "太刀", "No moves listed", "../adventurers/#person-midori"],
+    "aesoland/index.html": ["埃索島", "not listed", "ziplines"],
+    "hunting/index.html": ["Up to four", "共鬥技", "05:00"],
 }
 for rel, needles in pages.items():
     text = page_text(rel)
@@ -150,7 +154,8 @@ for rel, needles in pages.items():
     ok('href="../guide.css"' in text and 'src="../assets/web/logo.png"' in text, f"{rel} asset prefix")
     ok('href="../../"' in text, f"{rel} hub link climbs two levels")
     ok(text.count('aria-current="page"') == 1, f"{rel} one current nav item")
-    ok("not affiliated" in text and "非官方粉絲手冊" in text, f"{rel} disclaimer")
+    ok("Unofficial" in text and "非官方" in text, f"{rel} disclaimer")
+    ok("Primary sources" not in text and "Section sources" not in text and "臨時翻譯" not in text, f"{rel} has no source essay")
     ok("data-lang-btn" not in text, f"{rel} no language toggle")
     for needle in needles:
         ok(needle in text, f"{rel} keeps {needle}")

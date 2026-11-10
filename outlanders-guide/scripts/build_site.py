@@ -70,12 +70,17 @@ def hub_href(current_slug):
     return "../" if current_slug == "" else "../../"
 
 
+def icon(name, prefix):
+    return f'<svg class="ico" aria-hidden="true"><use href="{prefix}icons.svg#{esc(name)}"></use></svg>'
+
+
 def nav_html(current_slug):
+    prefix = asset_prefix(current_slug)
     items = []
     for _pid, slug, en, zh in NAV:
         current = ' aria-current="page"' if slug == current_slug else ""
         items.append(
-            f'<a href="{href_for(current_slug, slug)}"{current}>{pair(en, zh)}</a>'
+            f'<a href="{href_for(current_slug, slug)}"{current}>{icon(slug or "monsters", prefix)}{pair(en, zh)}</a>'
         )
     return "\n        ".join(items)
 
@@ -88,7 +93,7 @@ def directory():
                 found[item["id"]] = {
                     "slug": section["id"],
                     "en": item["name"]["en"],
-                    "zh": item["name"]["zh"],
+                    "zh": "" if item.get("name_zh_status") == "official_tc_absent" else item["name"]["zh"],
                 }
     return found
 
@@ -105,90 +110,82 @@ def person_href(current_slug, item_id):
     return href_for(current_slug, target["slug"]) + "#person-" + item_id
 
 
-def render_block(block):
-    editorial = " editorial" if block.get("editorial") else ""
-    paras = []
-    for para in block.get("paragraphs") or []:
-        flag = ""
-        if para.get("zh_status") == "provisional_translation":
-            flag = (
-                '<p class="flag">'
-                + pair(
-                    "Traditional Chinese in this paragraph is a provisional translation where the cited page is English.",
-                    "若引用頁是英文，本段繁體中文是臨時翻譯。",
-                )
-                + "</p>"
-            )
-        paras.append(
-            f'<p class="en">{esc(para["en"])}</p><p class="zh" lang="zh-Hant">{esc(para["zh"])}</p>{flag}'
-        )
-    label = ""
-    if block.get("editorial"):
-        label = (
-            '<p class="flag">'
-            + pair(
-                "Editorial note. This is not an official instruction and adds no unpublished game facts.",
-                "編輯說明。這不是官方指示，也不補充未公布的遊戲事實。",
-            )
-            + "</p>"
-        )
-    title = block["title"]
-    return (
-        f'<div class="block{editorial}"><h3>{pair(title["en"], title["zh"])}</h3>'
-        f'{label}<div class="prose">{"".join(paras)}</div></div>'
-    )
+BRIEF = {
+    "midori": ("Spirit Gauge fills faster.", "練氣計量表累積更快。"),
+    "rhodes": ("Charged hits store energy for an explosion.", "蓄力取得能量，再打出爆炸。"),
+    "haze": ("Fast slashes. Archdemon Mode can parry.", "高速連斬。Archdemon Mode 可招架。"),
+    "ryunosuke": ("Eat in a stance to power Spirit Blade.", "特定姿勢進食，強化 Spirit Blade。"),
+    "luxheart": ("Heat switches stances, then a firework burst.", "以 Heat 切換姿勢，再放出煙火般的一擊。"),
+    "pyro": ("Take hits, then one heavy burst.", "承受攻擊，換一次爆發重擊。"),
+    "keres": ("Rapid slashes into stronger follow-ups.", "高速連斬，可接更強的追擊。"),
+    "luka": ("Mobile bow. Thunder Coating arrows pierce.", "高機動的弓。電流瓶的箭可貫通。"),
+    "arkaya": ("Attacks build Resolve for one shielded hit.", "攻擊累積鬥志，打出一次帶防護的重擊。"),
+    "raya": ("Dodge, and spend stamina to fill the Demon Gauge.", "閃避，並消耗耐力累積鬼人計量表。"),
+    "ouyang-varen": ("Shield guard. Impetus powers thrusts.", "盾牌招架。鋒銳層數強化突刺。"),
+    "madelyn": ("Bow and spores that burst and buff allies.", "弓與孢子。引爆後強化自己和附近隊友。"),
+    "pepper": ("Heavy bowgun. Some shots fire from the air.", "重弩槍。部分射擊在空中連發。"),
+    "rutaco": ("Builds with tools and Radiantite.", "用工具和融石建造。"),
+    "trillan": ("Supports with song.", "以歌聲支援。"),
+    "palico": ("Uses weapons and items.", "使用武器和道具。"),
+    "long-sword": ("Spirit Gauge and Spirit Blade.", "練氣計量表與 Spirit Blade。"),
+    "hammer": ("Charge, store energy, then explode.", "蓄力、存能量、再爆炸。"),
+    "dual-blades": ("Fast slashes and a Demon Gauge.", "高速連斬與鬼人計量表。"),
+    "great-sword": ("A heavy burst, or Heat stances.", "爆發重擊，或以 Heat 切換姿勢。"),
+    "bow": ("Thunder Coating, or spores that buff allies.", "電流瓶，或能強化隊友的孢子。"),
+    "lance": ("Resolve or a guarding shield.", "鬥志，或用盾招架。"),
+    "heavy-bowgun": ("Powerful shots, some from midair.", "強力射擊，部分在空中連發。"),
+    "charge-blade": ("Named in the store list. No moves listed.", "商店有列名。未列招式。"),
+}
+
+CHIP_ICON = {
+    "Assault": "assault", "Support": "support", "Disruptor": "disruptor",
+    "Long Sword": "long-sword", "Hammer": "hammer", "Dual Blades": "dual-blades",
+    "Great Sword": "great-sword", "Bow": "bow", "Lance": "lance",
+    "Heavy Bowgun": "heavy-bowgun", "Charge Blade": "charge-blade",
+    "Buddy": "adventurers",
+}
+
+
+def shown_pair(en, zh, status):
+    if status == "official_tc_absent":
+        return f'<span class="en">{esc(en)}</span>'
+    return pair(en, zh)
 
 
 def render_item(current_slug, item):
-    name_class = "caveat-name" if item.get("name_zh_status") == "official_tc_absent" else ""
+    prefix = asset_prefix(current_slug)
+    brief = BRIEF.get(item["id"])
+    line = pair(brief[0], brief[1]) if brief else pair(item["description"]["en"], item["description"]["zh"])
     chips = []
     for chip in item.get("chips") or []:
-        extra = "caveat-name" if chip.get("zh_status") == "official_tc_absent" else ""
-        chips.append(f'<span class="chip">{pair(chip["en"], chip["zh"], extra)}</span>')
-    desc_flag = ""
-    if item.get("description_zh_status") == "provisional_translation":
-        desc_flag = (
-            '<p class="flag">'
-            + pair(
-                "Traditional Chinese description is a provisional translation.",
-                "繁體中文簡介是臨時翻譯。",
-            )
-            + "</p>"
-        )
-    note = ""
-    if item.get("note"):
-        note = (
-            f'<p class="notes en">{esc(item["note"]["en"])}</p>'
-            f'<p class="notes zh" lang="zh-Hant">{esc(item["note"]["zh"])}</p>'
-        )
+        glyph = icon(CHIP_ICON.get(chip["en"], "weapons"), prefix)
+        label = shown_pair(chip["en"], chip["zh"], chip.get("zh_status"))
+        chips.append(f'<span class="chip with-icon">{glyph}{label}</span>')
     links = []
     for linked in item.get("links") or []:
-        meta = LINKS.get(linked, {"en": linked, "zh": linked})
-        links.append(
-            f'<a href="{esc(person_href(current_slug, linked))}">{pair(meta["en"], meta["zh"])}</a>'
-        )
-    link_row = ""
-    if links:
-        link_row = (
-            '<p class="notes">'
-            + pair("Featured with", "對應介紹")
-            + " "
-            + " · ".join(links)
-            + "</p>"
-        )
+        meta = LINKS.get(linked, {"en": linked, "zh": ""})
+        label = pair(meta["en"], meta["zh"]) if meta.get("zh") else f'<span class="en">{esc(meta["en"])}</span>'
+        links.append(f'<a class="chip" href="{esc(person_href(current_slug, linked))}">{label}</a>')
+    link_row = f'<div class="chips">{"".join(links)}</div>' if links else ""
+    name_zh = ""
+    if item.get("name_zh_status") != "official_tc_absent":
+        name_zh = f'<p class="card-name-zh" lang="zh-Hant">{esc(item["name"]["zh"])}</p>'
     return f'''<article class="person" id="person-{esc(item["id"])}">
       <div class="person-body">
         <h3 class="person-name">{esc(item["name"]["en"])}</h3>
-        <p class="card-name-zh {name_class}" lang="zh-Hant">{esc(item["name"]["zh"])}</p>
+        {name_zh}
         <div class="chips">{"".join(chips)}</div>
-        <p class="desc en">{esc(item["description"]["en"])}</p>
-        <p class="desc zh" lang="zh-Hant">{esc(item["description"]["zh"])}</p>
-        {desc_flag}
-        {note}
+        <p class="desc">{line}</p>
         {link_row}
-        <div class="cite"><ul>{source_items(item.get("sources") or [])}</ul></div>
       </div>
     </article>'''
+
+
+def fact_list(prefix, rows):
+    items = []
+    for glyph, en, zh in rows:
+        items.append(f"<li>{icon(glyph, prefix)}{pair(en, zh)}</li>")
+    return '<ul class="facts">' + "".join(items) + "</ul>"
 
 
 def cited_ids(section):
@@ -209,31 +206,45 @@ def cited_ids(section):
 
 def render_section_main(section):
     slug = section["id"]
+    prefix = asset_prefix(slug)
+    short_title = {
+        "weapons": ("Weapons", "武器"),
+        "hunting": ("Hunting", "狩獵"),
+        "aesoland": ("Aesoland", "埃索島"),
+        "adventurers": ("Adventurers", "冒險家"),
+    }.get(slug, (section["title"]["en"], section["title"]["zh"]))
     chunks = [
         '<div class="wrap" id="content">',
         '<header class="page-head">',
-        '<p class="eyebrow">'
-        + pair("Monster Hunter Outlanders", "魔物獵人：旅人")
-        + "</p>",
-        f'<h1>{pair(section["title"]["en"], section["title"]["zh"])}</h1>',
-        f'<div class="lede">{pair(section["lede"]["en"], section["lede"]["zh"])}</div>',
+        f'<h1>{pair(short_title[0], short_title[1])}</h1>',
         "</header>",
-        f'<p class="notice">{pair(PACK["note"]["en"], PACK["note"]["zh"])}</p>',
     ]
-    for block in section.get("blocks") or []:
-        chunks.append(render_block(block))
-    for group in section.get("groups") or []:
-        chunks.append(f'<h3>{pair(group["title"]["en"], group["title"]["zh"])}</h3>')
-        if group.get("intro"):
-            chunks.append(f'<div class="lede">{pair(group["intro"]["en"], group["intro"]["zh"])}</div>')
-        grid_class = "weapon-grid" if slug == "weapons" else "people"
-        cards = "".join(render_item(slug, item) for item in group.get("items") or [])
-        chunks.append(f'<div class="{grid_class}">{cards}</div>')
-    chunks.append(
-        '<div class="cite"><h3>'
-        + pair("Section sources", "本節出處")
-        + f'</h3><ul>{source_items(section.get("sources") or [])}</ul></div>'
-    )
+    if slug == "aesoland":
+        chunks.append(fact_list(prefix, [
+            ("aesoland", "Aesoland", "埃索島"),
+            ("build", "Regions change with terrain and weather. Names are not listed.", "區域隨地形與天氣變化。名稱未公開。"),
+            ("build", "Launchers, ziplines, and gliding.", "發射器、滑索、滑翔。"),
+            ("craft", "Gather materials, then watch how monsters hunt.", "採集素材，並觀察魔物如何狩獵。"),
+        ]))
+    elif slug == "hunting":
+        chunks.append(fact_list(prefix, [
+            ("party", "Up to four hunters.", "最多四名獵人。"),
+            ("hunting", "Co-op skills.", "共鬥技。"),
+            ("party", "Team up on the same server.", "同一伺服器才能組隊。"),
+            ("calendar", "29 Oct 2026, 06:00 UTC+8.", "2026年10月29日 06:00（UTC+8）。"),
+            ("weapons", "iOS and Android. One-button combos.", "iOS 與 Android。可一鍵出連段。"),
+            ("craft", "Gather materials and craft gear.", "採集素材並打造裝備。"),
+            ("support", "In-game language includes Traditional Chinese.", "遊戲內可選繁體中文。"),
+            ("calendar", "Daily refresh 05:00 server time.", "每日 05:00（伺服器時間）刷新。"),
+            ("adventurers", "Each adventurer uses one weapon.", "每位冒險家使用一種武器。"),
+        ]))
+    else:
+        for group in section.get("groups") or []:
+            if group["id"] == "buddies":
+                chunks.append(f'<h2>{pair("Buddies", "隨從")}</h2>')
+            grid_class = "weapon-grid" if slug == "weapons" else "people"
+            cards = "".join(render_item(slug, item) for item in group.get("items") or [])
+            chunks.append(f'<div class="{grid_class}">{cards}</div>')
     chunks.append("</div>")
     return "\n".join(chunks)
 
@@ -241,35 +252,23 @@ def render_section_main(section):
 def monsters_main():
     return '''<section class="hero">
       <div class="wrap hero-layout">
-        <div>
-          <p class="eyebrow"><span class="en">Monster Hunter Outlanders</span><span class="zh" lang="zh-Hant">魔物獵人：旅人</span></p>
-          <h1><span class="en">Monsters</span><span class="zh" lang="zh-Hant">魔物</span></h1>
-          <div class="lede">
-            <span class="en">Officially named large monsters, with Elder Dragons kept apart. Other chapters — adventurers, weapons, Aesoland, and hunting — are separate pages.</span>
-            <span class="zh" lang="zh-Hant">官方具名的大型魔物，古龍種分開列出。冒險家、武器、埃索島和狩獵是另外的頁面。</span>
-          </div>
-          <div class="pills">
-            <span class="pill"><span class="en">23 officially named monsters</span><span class="zh" lang="zh-Hant">官方具名魔物 23 種</span></span>
-            <span class="pill"><span class="en">10 Nov 2026 · Hong Kong time</span><span class="zh" lang="zh-Hant">2026年11月10日 · 香港時間</span></span>
-            <span class="pill"><span class="en">Unofficial fan guide</span><span class="zh" lang="zh-Hant">非官方粉絲手冊</span></span>
-          </div>
-          <div class="notice" id="coverage"></div>
-        </div>
         <figure class="hero-figure">
           <div class="frame-art">
             <img src="assets/web/ruger-key-art.jpg" width="1600" height="899" alt="Ruger Aidal key art, shown in full / 光稜龍主視覺，完整顯示" fetchpriority="high" decoding="async">
           </div>
         </figure>
+        <div>
+          <h1><span class="en">Monsters</span><span class="zh" lang="zh-Hant">魔物</span></h1>
+        </div>
       </div>
     </section>
     <div class="wrap">
       <div class="section-head" id="roster">
         <h2><span class="en">Elder Dragons</span><span class="zh" lang="zh-Hant">古龍種</span></h2>
-        <p><span class="en">Only the three named as Elder Dragons in the sources reviewed.</span><span class="zh" lang="zh-Hant">只有本次查核來源中被稱為古龍種的三種。</span></p>
       </div>
       <div class="elder-grid" id="elder-grid"></div>
       <div class="section-head">
-        <h2><span class="en">Officially named large monsters</span><span class="zh" lang="zh-Hant">官方具名的大型魔物</span></h2>
+        <h2><span class="en">Roster</span><span class="zh" lang="zh-Hant">名冊</span></h2>
         <p id="count" class="count"></p>
       </div>
       <div class="toolbar">
@@ -315,6 +314,7 @@ def write_page(path, text):
 
 shutil.copyfile(SRC / "guide.css", ROOT / "guide.css")
 shutil.copyfile(SRC / "guide.js", ROOT / "monsters.js")
+shutil.copyfile(SRC / "icons.svg", ROOT / "icons.svg")
 
 monster_scripts = (
     '<script type="application/json" id="guide-data">'
