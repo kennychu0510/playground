@@ -16,51 +16,38 @@
       <a class="brand" href="./">
         <img src="assets/web/logo.png" width="52" height="37" alt="Monster Hunter Outlanders / 魔物獵人：旅人">
         <span class="brand-text">
-          <span class="brand-kicker"><span class="en">Unofficial fan guide</span><span class="zh" lang="zh-Hant">非官方粉絲手冊</span></span>
-          <span class="brand-title"><span class="en">Outlanders Field Guide</span><span class="zh" lang="zh-Hant">旅人狩獵手冊</span></span>
+          <span class="brand-title"><span class="en">Outlanders</span><span class="zh" lang="zh-Hant">旅人</span></span>
         </span>
       </a>
       <nav class="nav-future" aria-label="Guide sections / 手冊章節">
-        <a href="./" aria-current="page"><span class="pair"><span class="en">Monsters</span><span class="zh" lang="zh-Hant">魔物</span></span></a>
-        <a href="adventurers/"><span class="pair"><span class="en">Adventurers</span><span class="zh" lang="zh-Hant">冒險家</span></span></a>
-        <a href="weapons/"><span class="pair"><span class="en">Weapons</span><span class="zh" lang="zh-Hant">武器</span></span></a>
-        <a href="aesoland/"><span class="pair"><span class="en">Aesoland</span><span class="zh" lang="zh-Hant">埃索島</span></span></a>
-        <a href="hunting/"><span class="pair"><span class="en">Hunting</span><span class="zh" lang="zh-Hant">狩獵</span></span></a>
+        <a href="./" aria-current="page"><svg class="ico" aria-hidden="true"><use href="icons.svg#monsters"></use></svg><span class="pair"><span class="en">Monsters</span><span class="zh" lang="zh-Hant">魔物</span></span></a>
+        <a href="adventurers/"><svg class="ico" aria-hidden="true"><use href="icons.svg#adventurers"></use></svg><span class="pair"><span class="en">Adventurers</span><span class="zh" lang="zh-Hant">冒險家</span></span></a>
+        <a href="weapons/"><svg class="ico" aria-hidden="true"><use href="icons.svg#weapons"></use></svg><span class="pair"><span class="en">Weapons</span><span class="zh" lang="zh-Hant">武器</span></span></a>
+        <a href="aesoland/"><svg class="ico" aria-hidden="true"><use href="icons.svg#aesoland"></use></svg><span class="pair"><span class="en">Aesoland</span><span class="zh" lang="zh-Hant">埃索島</span></span></a>
+        <a href="hunting/"><svg class="ico" aria-hidden="true"><use href="icons.svg#hunting"></use></svg><span class="pair"><span class="en">Hunting</span><span class="zh" lang="zh-Hant">狩獵</span></span></a>
       </nav>
     </div>
   </header>
   <main id="top">
     <section class="hero">
       <div class="wrap hero-layout">
-        <div>
-          <p class="eyebrow"><span class="en">Monster Hunter Outlanders</span><span class="zh" lang="zh-Hant">魔物獵人：旅人</span></p>
-          <h1><span class="en">Monsters</span><span class="zh" lang="zh-Hant">魔物</span></h1>
-          <div class="lede">
-            <span class="en">Officially named large monsters, with Elder Dragons kept apart. Other chapters — adventurers, weapons, Aesoland, and hunting — are separate pages.</span>
-            <span class="zh" lang="zh-Hant">官方具名的大型魔物，古龍種分開列出。冒險家、武器、埃索島和狩獵是另外的頁面。</span>
-          </div>
-          <div class="pills">
-            <span class="pill"><span class="en">23 officially named monsters</span><span class="zh" lang="zh-Hant">官方具名魔物 23 種</span></span>
-            <span class="pill"><span class="en">10 Nov 2026 · Hong Kong time</span><span class="zh" lang="zh-Hant">2026年11月10日 · 香港時間</span></span>
-            <span class="pill"><span class="en">Unofficial fan guide</span><span class="zh" lang="zh-Hant">非官方粉絲手冊</span></span>
-          </div>
-          <div class="notice" id="coverage"></div>
-        </div>
         <figure class="hero-figure">
           <div class="frame-art">
             <img src="assets/web/ruger-key-art.jpg" width="1600" height="899" alt="Ruger Aidal key art, shown in full / 光稜龍主視覺，完整顯示" fetchpriority="high" decoding="async">
           </div>
         </figure>
+        <div>
+          <h1><span class="en">Monsters</span><span class="zh" lang="zh-Hant">魔物</span></h1>
+        </div>
       </div>
     </section>
     <div class="wrap">
       <div class="section-head" id="roster">
         <h2><span class="en">Elder Dragons</span><span class="zh" lang="zh-Hant">古龍種</span></h2>
-        <p><span class="en">Only the three named as Elder Dragons in the sources reviewed.</span><span class="zh" lang="zh-Hant">只有本次查核來源中被稱為古龍種的三種。</span></p>
       </div>
       <div class="elder-grid" id="elder-grid"></div>
       <div class="section-head">
-        <h2><span class="en">Officially named large monsters</span><span class="zh" lang="zh-Hant">官方具名的大型魔物</span></h2>
+        <h2><span class="en">Roster</span><span class="zh" lang="zh-Hant">名冊</span></h2>
         <p id="count" class="count"></p>
       </div>
       <div class="toolbar">
@@ -83,11 +70,9 @@
   </main>
   <footer>
     <div class="wrap">
-      <h2><span class="en">Primary sources</span><span class="zh" lang="zh-Hant">主要來源</span></h2>
-      <ul class="source-list"><li><a href="https://monsterhunteroutlanders.com/en/" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Official Monster Hunter Outlanders website (English)</span><span class="zh" lang="zh-Hant">《魔物獵人：旅人》官方網站（英文）</span></span></a></li><li><a href="https://monsterhunteroutlanders.com/js/glanguage.js" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Official site Traditional Chinese locale strings (zh-tw in official glanguage.js)</span><span class="zh" lang="zh-Hant">官方網站繁體中文文案（官方 glanguage.js 的 zh-tw 語言包）</span></span></a></li><li><a href="https://mho.garena.com/en/news/TTBRXV" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Garena official news: Ruger Aidal reveal at gamescom 2026 (English)</span><span class="zh" lang="zh-Hant">Garena 官方新聞：gamescom 2026 公布光稜龍（英文）</span></span></a> (2026-08-26)</li><li><a href="https://mho.garena.com/zh_tw/news/RN4YWN" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Garena official Traditional Chinese news: original Elder Dragon 光稜龍</span><span class="zh" lang="zh-Hant">Garena 官方繁體中文新聞：原創古龍種「光稜龍」公開</span></span></a> (2026-08-31)</li><li><a href="https://www.capcom.co.jp/ir/english/news/html/e260929.html" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Capcom press release: launch on 29 October 2026</span><span class="zh" lang="zh-Hant">Capcom 新聞稿：2026年10月29日推出</span></span></a> (2026-09-29)</li><li><a href="https://x.com/MHO_English/status/2109584869097455999" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Official @MHO_English Monster Info Compilation ①</span><span class="zh" lang="zh-Hant">官方 @MHO_English Monster Info Compilation ①</span></span></a> (2026-10-12)</li><li><a href="https://x.com/MHO_English/status/2109947260473954800" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Official @MHO_English Monster Info Compilation ②</span><span class="zh" lang="zh-Hant">官方 @MHO_English Monster Info Compilation ②</span></span></a> (2026-10-13)</li><li><a href="https://x.com/MHO_English/status/2111306209844236604" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Official @MHO_English Monster Info Compilation ③</span><span class="zh" lang="zh-Hant">官方 @MHO_English Monster Info Compilation ③</span></span></a> (2026-10-17)</li><li><a href="https://x.com/MHO_English/status/2116424939612028932" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Official @MHO_English Monster Info Compilation ④</span><span class="zh" lang="zh-Hant">官方 @MHO_English Monster Info Compilation ④</span></span></a> (2026-10-31)</li><li><a href="https://x.com/MHO_English/status/2116787326009381282" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Official @MHO_English Monster Info Compilation ⑤</span><span class="zh" lang="zh-Hant">官方 @MHO_English Monster Info Compilation ⑤</span></span></a> (2026-11-01)</li><li><a href="https://x.com/MHO_English/status/2117874491628081218" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Official @MHO_English Monster Info Compilation ⑥</span><span class="zh" lang="zh-Hant">官方 @MHO_English Monster Info Compilation ⑥</span></span></a> (2026-11-04)</li><li><a href="https://x.com/MHO_English/status/2092446937509466412" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Official @MHO_English Monster Info — Ruger Aidal</span><span class="zh" lang="zh-Hant">官方 @MHO_English Monster Info — 光稜龍</span></span></a> (2026-08-26)</li><li><a href="https://x.com/MHO_English/status/2088128481464816074" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Official @MHO_English Monster Info — Kushala Daora</span><span class="zh" lang="zh-Hant">官方 @MHO_English Monster Info — 鋼龍</span></span></a> (2026-08-14)</li><li><a href="https://x.com/MHO_English/status/2093307616315249012" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Official @MHO_English Monster Info — Nergigante</span><span class="zh" lang="zh-Hant">官方 @MHO_English Monster Info — 滅盡龍</span></span></a> (2026-08-28)</li><li><a href="https://x.com/MHO_English/status/2117572508610125990" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Official @MHO_English November Event Calendar (Season 0 — First Half)</span><span class="zh" lang="zh-Hant">官方 @MHO_English 十一月活動行事曆（Season 0 上半）</span></span></a> (2026-11-03)</li><li><a href="https://x.com/MHO_English/status/2118886151671218613" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Official @MHO_English: Apex Challenge starts — Ruger Aidal</span><span class="zh" lang="zh-Hant">官方 @MHO_English：Apex Challenge 開始（光稜龍）</span></span></a> (2026-11-07)</li><li><a href="https://x.com/MHO_English/status/2118652110463988139" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Official @MHO_English: Radiant Hunt features Radiant Kulu-Ya-Ku</span><span class="zh" lang="zh-Hant">官方 @MHO_English：Radiant Hunt 本週魔物為融光種搔鳥</span></span></a> (2026-11-06)</li><li><a href="https://x.com/MHO_English/status/2093186817432699151" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Official @MHO_English: 3rd Closed Beta — Nergigante Approaches</span><span class="zh" lang="zh-Hant">官方 @MHO_English：第三次封閉測試「Nergigante Approaches」</span></span></a> (2026-08-28)</li><li><a href="https://www.monsterhunter.com/world/hk/ecosystem/01.html" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Capcom official Monster Hunter: World (Hong Kong) — Ancient Forest</span><span class="zh" lang="zh-Hant">Capcom 官方《魔物獵人：世界》（香港）古樹森林</span></span></a></li><li><a href="https://www.monsterhunter.com/world/hk/ecosystem/02.html" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Capcom official Monster Hunter: World (Hong Kong) — Wildspire Waste</span><span class="zh" lang="zh-Hant">Capcom 官方《魔物獵人：世界》（香港）大蟻塚荒地</span></span></a></li><li><a href="https://www.monsterhunter.com/world/hk/ecosystem/03.html" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Capcom official Monster Hunter: World (Hong Kong) — Coral Highlands</span><span class="zh" lang="zh-Hant">Capcom 官方《魔物獵人：世界》（香港）陸珊瑚台地</span></span></a></li><li><a href="https://www.monsterhunter.com/world/hk/ecosystem/04.html" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Capcom official Monster Hunter: World (Hong Kong) — Rotten Vale</span><span class="zh" lang="zh-Hant">Capcom 官方《魔物獵人：世界》（香港）瘴氣之谷</span></span></a></li><li><a href="https://www.monsterhunter.com/world/hk/ecosystem/05.html" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Capcom official Monster Hunter: World (Hong Kong) — Elder&#x27;s Recess</span><span class="zh" lang="zh-Hant">Capcom 官方《魔物獵人：世界》（香港）龍結晶之地</span></span></a></li><li><a href="https://www.monsterhunter.com/world-iceborne/hk/monster/" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Capcom official Monster Hunter World: Iceborne (Hong Kong) monster page</span><span class="zh" lang="zh-Hant">Capcom 官方《魔物獵人世界：Iceborne》（香港）魔物頁</span></span></a></li><li><a href="https://mho.garena.com/en/news/4CWE5K" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Garena official English news: launch announcement and web pre-registration (24 July 2026)</span><span class="zh" lang="zh-Hant">Garena 官方英文新聞：公開發表與網頁事前登錄（2026年7月24日）</span></span></a> (2026-07-24)</li><li><a href="https://mho.garena.com/en/news/MDTQCH" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Garena official English Hunting FAQ (28 October 2026)</span><span class="zh" lang="zh-Hant">Garena 官方英文《Hunting FAQ》（2026年10月28日）</span></span></a> (2026-10-28)</li><li><a href="https://play.google.com/store/apps/details?id=com.tencent.mhadv&amp;hl=en_US" target="_blank" rel="noopener noreferrer"><span class="pair"><span class="en">Google Play listing for Monster Hunter Outlanders</span><span class="zh" lang="zh-Hant">Google Play 上的《魔物獵人：旅人》商店說明</span></span></a></li></ul>
       <p class="legal">
-        <span class="en">This is an unofficial fan guide and is not affiliated with, endorsed by, or sponsored by Capcom, TiMi Studio Group, Level Infinite, Proxima Beta, or Garena. Monster Hunter and all related names and imagery are trademarks or copyrights of their respective owners. This copy is a static page on a personal playground site.</span>
-        <span class="zh" lang="zh-Hant">本站為非官方粉絲手冊，與 Capcom、天美工作室、Level Infinite、Proxima Beta 或 Garena 無關，亦未獲其認可或贊助。Monster Hunter 及相關名稱與圖像均為其權利人的商標或著作權。此頁為個人 playground 上的靜態頁面。</span>
+        <span class="en">Unofficial fan guide. Not affiliated with Capcom, TiMi Studio Group, Level Infinite, Proxima Beta, or Garena.</span>
+        <span class="zh" lang="zh-Hant">非官方粉絲手冊。與 Capcom、天美工作室、Level Infinite、Proxima Beta、Garena 無關。</span>
       </p>
       <p class="legal"><a href="../">Kenny’s playground / 回到遊樂場</a></p>
     </div>

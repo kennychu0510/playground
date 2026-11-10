@@ -32,6 +32,10 @@
     const zhClass = extraZhClass ? "zh " + extraZhClass : "zh";
     return `<span class="pair"><span class="en">${esc(en)}</span><span class="${zhClass}" lang="zh-Hant">${esc(zh)}</span></span>`;
   }
+  function icon(id) {
+    return `<svg class="ico" aria-hidden="true"><use href="icons.svg#${esc(id)}"></use></svg>`;
+  }
+  const CAT_ICON = { all: "all", "elder-dragon": "elder", radiant: "radiant", standard: "standard", subspecies: "subspecies" };
   function catLabel(id) { return cats[id] || { en: id, zh: id }; }
   function classLabel(id) { return classes[id] || { en: id, zh: id }; }
   function confLabel(id) { return confirmLabels[id] || { en: id, zh: id }; }
@@ -85,11 +89,10 @@
     const conf = confLabel(m.confirmation);
     const alt = m.name.en + " / " + m.name.zh;
     const sameClass = cat.en === cls.en && cat.zh === cls.zh;
-    const prov = nameStatusOfficial(m) ? "" : `<span class="provisional">name note / 譯名見備註</span>`;
     btn.innerHTML = `
       ${art(m.images.hero, alt, variant === "elder")}
       <div class="card-body">
-        <p class="card-cat">${pair(cat.en, cat.zh)}${sameClass ? "" : pair(cls.en, cls.zh)} ${prov}</p>
+        <p class="card-cat"><span class="with-icon">${icon(CAT_ICON[m.category] || "standard")}${pair(cat.en, cat.zh)}</span>${sameClass ? "" : pair(cls.en, cls.zh)}</p>
         <h3 class="card-name-en">${esc(m.name.en)}</h3>
         <p class="card-name-zh" lang="zh-Hant">${esc(m.name.zh)}</p>
         <div class="badge-row"><span class="${badgeClass(m.confirmation)}">${pair(conf.en, conf.zh)}</span></div>
@@ -112,7 +115,7 @@
       b.type = "button";
       b.className = "filter-btn";
       b.setAttribute("aria-pressed", filter === c.id ? "true" : "false");
-      b.innerHTML = pair(c.en, c.zh);
+      b.innerHTML = icon(CAT_ICON[c.id] || "all") + pair(c.en, c.zh);
       b.addEventListener("click", () => {
         filter = c.id;
         renderFilters();
@@ -126,12 +129,9 @@
     const list = monsters.filter(matches);
     els.grid.innerHTML = "";
     list.forEach((m) => els.grid.appendChild(cardButton(m, "card")));
-    els.count.innerHTML = pair(
-      list.length + " of " + monsters.length + " monsters",
-      "顯示 " + list.length + "／" + monsters.length + " 種魔物"
-    );
+    els.count.innerHTML = pair(list.length + " / " + monsters.length, list.length + "／" + monsters.length);
     els.empty.classList.toggle("show", list.length === 0);
-    els.empty.innerHTML = pair("No monsters match that search or filter.", "沒有符合此搜尋或篩選的魔物。");
+    els.empty.innerHTML = pair("No match.", "沒有符合的魔物。");
   }
 
   function openModal(id) {
@@ -144,15 +144,6 @@
     const conf = confLabel(m.confirmation);
     const cat = catLabel(m.category);
     const cls = classLabel(m.species_class);
-    const descFlag = m.description_zh_status === "official_outlanders"
-      ? ""
-      : `<p class="flag">${pair("Traditional Chinese description is a provisional translation of the official English text.", "繁體中文簡介是官方英文的臨時翻譯，不是官方中文原文。")}</p>`;
-    const nameFlag = nameStatusOfficial(m)
-      ? (m.name_zh_note ? `<p class="notes">${esc(m.name_zh_note)}</p>` : "")
-      : `<p class="flag">${pair("Traditional Chinese name is provisional or assembled as noted.", "繁體中文名稱是臨時或組合譯名，說明如下。")} ${esc(m.name_zh_note || "")}</p>`;
-    const notes = (m.notes && (m.notes.en || m.notes.zh))
-      ? `<h3>${pair("Notes", "備註")}</h3><p class="notes en">${esc(m.notes.en || "")}</p><p class="notes zh" lang="zh-Hant">${esc(m.notes.zh || "")}</p>`
-      : "";
     els.dialog.innerHTML = `
       <div class="dialog-bar">
         <button class="close" type="button" id="close-modal" aria-label="Close, 關閉">×</button>
@@ -162,18 +153,9 @@
         <div class="badge-row"><span class="${badgeClass(m.confirmation)}">${pair(conf.en, conf.zh)}</span></div>
         <h2 id="dialog-title">${esc(m.name.en)}</h2>
         <p class="subnames" lang="zh-Hant">${esc(m.name.zh)}</p>
-        <div class="chips"><span class="chip">${pair(cat.en, cat.zh)}</span>${cat.en === cls.en && cat.zh === cls.zh ? "" : `<span class="chip">${pair(cls.en, cls.zh)}</span>`}</div>
-        ${nameFlag}
-        <h3>${pair("Description", "簡介")}</h3>
+        <div class="chips"><span class="chip with-icon">${icon(CAT_ICON[m.category] || "standard")}${pair(cat.en, cat.zh)}</span>${cat.en === cls.en && cat.zh === cls.zh ? "" : `<span class="chip">${pair(cls.en, cls.zh)}</span>`}</div>
         <p class="desc en">${esc(m.description.en)}</p>
         <p class="desc zh" lang="zh-Hant">${esc(m.description.zh)}</p>
-        ${descFlag}
-        ${notes}
-        <div class="cite"><h3>${pair("Citations", "出處")}</h3><ul>${sourceItems(m.sources)}</ul></div>
-        <p class="notes">${pair(
-          "Official artwork. ©CAPCOM / ©2026 Proxima Beta Pte. Ltd. Used here in an unofficial fan guide.",
-          "官方美術。©CAPCOM／©2026 Proxima Beta Pte. Ltd. 僅用於非官方粉絲手冊。"
-        )}</p>
       </div>`;
     els.dialog.setAttribute("aria-labelledby", "dialog-title");
     const closeBtn = document.getElementById("close-modal");
@@ -186,15 +168,6 @@
     delete els.modal.dataset.open;
     document.body.style.overflow = "";
     if (lastFocus && lastFocus.focus) lastFocus.focus();
-  }
-
-  const limits = data.meta.coverage_limits;
-  const notice = document.getElementById("coverage");
-  if (notice && limits) {
-    notice.innerHTML = pair(
-      limits.en + " Researched 10 November 2026 (Hong Kong time, UTC+8).",
-      limits.zh + "資料查核日期：2026年11月10日（香港時間，UTC+8）。"
-    );
   }
 
   renderFilters();
