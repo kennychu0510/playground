@@ -4,70 +4,82 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <meta name="description" content="Unofficial bilingual English and Traditional Chinese field guide to officially named Monster Hunter Outlanders monsters.">
-  <title>Monster Hunter Outlanders Field Guide — Monsters</title>
+  <meta name="description" content="Unofficial English and Traditional Chinese field guide to Monster Hunter Outlanders: monsters, adventurers, weapons, Aesoland, and hunting.">
+  <title>Monster Hunter Outlanders Field Guide / 《魔物獵人：旅人》狩獵手冊</title>
+  <link rel="icon" href="assets/web/logo.png">
   <style>/*__CSS__*/</style>
-  <style>:root{--hero:url("__HERO__")}</style>
 </head>
 <body>
-  <a class="skip" href="#roster">Skip to monster roster</a>
+  <a class="skip" href="#roster">Skip to monsters / 跳至魔物</a>
   <header class="top">
     <div class="wrap top-inner">
       <a class="brand" href="#top">
-        <img src="__LOGO__" width="52" height="37" alt="Monster Hunter Outlanders">
+        <img src="__LOGO__" width="52" height="37" alt="Monster Hunter Outlanders / 魔物獵人：旅人">
         <span class="brand-text">
-          <span class="brand-kicker" data-i18n="brandKicker">Unofficial fan guide</span>
-          <span class="brand-title" data-i18n="brandTitle">Outlanders Field Guide</span>
+          <span class="brand-kicker"><span class="en">Unofficial fan guide</span><span class="zh" lang="zh-Hant">非官方粉絲手冊</span></span>
+          <span class="brand-title"><span class="en">Outlanders Field Guide</span><span class="zh" lang="zh-Hant">旅人狩獵手冊</span></span>
         </span>
       </a>
-      <nav class="nav-future" aria-label="Guide sections">
-        <a href="#roster" aria-current="page" data-i18n="navMonsters">Monsters</a>
-        <span class="soon" data-nav-soon data-i18n="navSoonA">Adventurers</span>
-        <span class="soon" data-nav-soon data-i18n="navSoonB">Weapons</span>
+      <nav class="nav-future" aria-label="Guide sections / 手冊章節">
+        <a href="#roster"><span class="en">Monsters</span><span class="zh" lang="zh-Hant">魔物</span></a>
+        <a href="#adventurers"><span class="en">Adventurers</span><span class="zh" lang="zh-Hant">冒險家</span></a>
+        <a href="#weapons"><span class="en">Weapons</span><span class="zh" lang="zh-Hant">武器</span></a>
+        <a href="#aesoland"><span class="en">Aesoland</span><span class="zh" lang="zh-Hant">埃索島</span></a>
+        <a href="#hunting"><span class="en">Hunting</span><span class="zh" lang="zh-Hant">狩獵</span></a>
       </nav>
-      <div class="lang" role="group" aria-label="Language">
-        <button type="button" data-lang-btn="en" aria-pressed="true">English</button>
-        <button type="button" data-lang-btn="zh" aria-pressed="false">繁體中文</button>
-      </div>
     </div>
   </header>
 
   <main id="top">
     <section class="hero">
-      <div class="hero-art" aria-hidden="true"></div>
-      <div class="wrap hero-inner">
-        <p class="eyebrow">Monster Hunter Outlanders · 魔物獵人：旅人</p>
-        <h1 data-i18n="h1">The monsters of Aesoland</h1>
-        <p class="lede" data-i18n="lede"></p>
-        <div class="pills">
-          <span class="pill">23 officially named</span>
-          <span class="pill">10 Nov 2026 · Hong Kong time</span>
-          <span class="pill">Unofficial fan guide</span>
+      <div class="wrap hero-layout">
+        <div>
+          <p class="eyebrow"><span class="en">Monster Hunter Outlanders</span><span class="zh" lang="zh-Hant">魔物獵人：旅人</span></p>
+          <h1><span class="en">Field guide</span><span class="zh" lang="zh-Hant">狩獵手冊</span></h1>
+          <div class="lede">
+            <span class="en">An unofficial guide to officially described monsters, adventurers, weapons, the island of Aesoland, and how hunting is explained in public sources. English and Traditional Chinese stay on the page together.</span>
+            <span class="zh" lang="zh-Hant">這是一份非官方手冊，整理官方公開描述過的魔物、冒險家、武器、埃索島，以及公開來源如何說明狩獵。英文和繁體中文同時留在頁面上。</span>
+          </div>
+          <div class="pills">
+            <span class="pill"><span class="en">23 officially named monsters</span><span class="zh" lang="zh-Hant">官方具名魔物 23 種</span></span>
+            <span class="pill"><span class="en">10 Nov 2026 · Hong Kong time</span><span class="zh" lang="zh-Hant">2026年11月10日 · 香港時間</span></span>
+            <span class="pill"><span class="en">Unofficial fan guide</span><span class="zh" lang="zh-Hant">非官方粉絲手冊</span></span>
+          </div>
+          <div class="notice" id="coverage"></div>
         </div>
-        <p class="notice" data-i18n="notice"></p>
+        <figure class="hero-figure">
+          <div class="frame-art">
+            <img src="__HERO__" width="1600" height="899" alt="Ruger Aidal key art, shown in full / 光稜龍主視覺，完整顯示" fetchpriority="high" decoding="async">
+          </div>
+        </figure>
       </div>
     </section>
 
     <div class="wrap">
-      <div class="section-head">
-        <h2 data-i18n="elderHead">Elder Dragons</h2>
-        <p data-i18n="elderSub"></p>
+      <div class="section-head" id="roster">
+        <h2><span class="en">Monsters</span><span class="zh" lang="zh-Hant">魔物</span></h2>
+        <p><span class="en">Elder Dragons are only the three named as such in the sources reviewed.</span><span class="zh" lang="zh-Hant">古龍種只包括本次查核來源中被如此介紹的三種。</span></p>
       </div>
       <div class="elder-grid" id="elder-grid"></div>
 
-      <div class="section-head" id="roster">
-        <h2 data-i18n="rosterHead">Officially named large monsters</h2>
+      <div class="section-head">
+        <h2><span class="en">Officially named large monsters</span><span class="zh" lang="zh-Hant">官方具名的大型魔物</span></h2>
         <p id="count" class="count"></p>
       </div>
       <div class="toolbar">
         <div class="search">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/></svg>
-          <input id="search" type="search" autocomplete="off" spellcheck="false" data-i18n="searchPh" aria-label="Search monsters">
+          <label class="search-label" for="search"><span class="en">Search</span><span class="zh" lang="zh-Hant">搜尋</span></label>
+          <div class="search-field">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/></svg>
+            <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Rathalos / 火龍">
+          </div>
         </div>
-        <div class="filters" id="filters" role="toolbar" aria-label="Monster category"></div>
+        <div class="filters" id="filters" role="toolbar" aria-label="Monster category / 魔物分類"></div>
       </div>
       <div class="grid" id="grid"></div>
       <p class="empty" id="empty"></p>
+
+      <div id="more"></div>
     </div>
   </main>
 
@@ -78,34 +90,19 @@
 
   <footer>
     <div class="wrap">
-      <h2 data-i18n="footerSources">Primary sources</h2>
+      <h2><span class="en">Primary sources</span><span class="zh" lang="zh-Hant">主要來源</span></h2>
       <ul class="source-list" id="source-list"></ul>
-      <p class="legal" data-i18n="footerLegal"></p>
-      <p class="legal"><a href="../">Kenny’s playground</a></p>
+      <p class="legal">
+        <span class="en">This is an unofficial fan guide and is not affiliated with, endorsed by, or sponsored by Capcom, TiMi Studio Group, Level Infinite, Proxima Beta, or Garena. Monster Hunter and all related names and imagery are trademarks or copyrights of their respective owners. This copy is a static page on a personal playground site.</span>
+        <span class="zh" lang="zh-Hant">本站為非官方粉絲手冊，與 Capcom、天美工作室、Level Infinite、Proxima Beta 或 Garena 無關，亦未獲其認可或贊助。Monster Hunter 及相關名稱與圖像均為其權利人的商標或著作權。此頁為個人 playground 上的靜態頁面。</span>
+      </p>
+      <p class="legal"><a href="../">Kenny’s playground / 回到遊樂場</a></p>
     </div>
   </footer>
 
   <script type="application/json" id="guide-data">__GUIDE_DATA__</script>
+  <script type="application/json" id="guide-sections">__SECTIONS__</script>
   <script>window.GUIDE_SOURCES = __SOURCES__;</script>
   <script>/*__JS__*/</script>
-  <script>
-    (function () {
-      const sources = window.GUIDE_SOURCES || [];
-      const ul = document.getElementById("source-list");
-      const langBtns = () => document.documentElement.dataset.lang === "zh" ? "zh" : "en";
-      function render() {
-        const lang = langBtns();
-        ul.innerHTML = sources.map(function (s) {
-          const title = (s.title && (s.title[lang] || s.title.en)) || s.url;
-          const date = s.date ? " (" + s.date + ")" : "";
-          return "<li><a href=\"" + s.url + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + title.replace(/</g,"") + "</a>" + date + "</li>";
-        }).join("");
-      }
-      render();
-      document.querySelectorAll("[data-lang-btn]").forEach(function (b) {
-        b.addEventListener("click", function () { setTimeout(render, 0); });
-      });
-    })();
-  </script>
 </body>
 </html>

@@ -1,0 +1,516 @@
+{
+  "as_of": "2026-11-10",
+  "timezone": "Asia/Hong_Kong",
+  "note": {
+    "en": "Checked 10 November 2026 (Hong Kong time, UTC+8). English text below is quoted or closely paraphrased from the cited official page. Traditional Chinese is the official zh-tw locale string when one was published there; otherwise it is marked as a provisional translation and is not an official Chinese source.",
+    "zh": "查核日期：2026年11月10日（香港時間，UTC+8）。下文英文依所引官方頁面撰寫。繁體中文若來自官方 zh-tw 語言包會註明；沒有官方中文時標為臨時翻譯，並不是官方中文原文。"
+  },
+  "sections": [
+    {
+      "id": "adventurers",
+      "nav": {"en": "Adventurers", "zh": "冒險家"},
+      "title": {"en": "Adventurers and Buddies", "zh": "冒險家與隨從"},
+      "lede": {
+        "en": "The official site presents original Adventurers, each with one class and one weapon, plus three Buddies. The same zh-tw locale says more Adventurers are still to come, so this is the featured roster checked on 10 November 2026, not a promise that the game will never add anyone.",
+        "zh": "官方網站列出原創冒險家，每位有一個定位和一種武器，另外有三種隨從。同一份 zh-tw 語言包寫著還會有更多冒險家，因此這裡是 2026年11月10日查核到的公開名單，不是「遊戲以後不會再加人」。"
+      },
+      "sources": ["official-site-en", "official-site-glanguage-zhtw", "garena-launch-announce"],
+      "groups": [
+        {
+          "id": "featured-adventurers",
+          "title": {"en": "Featured on the official site", "zh": "官方網站已介紹"},
+          "items": [
+            {
+              "id": "midori",
+              "name": {"en": "Midori", "zh": "米多麗"},
+              "name_zh_status": "official_outlanders",
+              "chips": [
+                {"en": "Assault", "zh": "進擊型"},
+                {"en": "Long Sword", "zh": "太刀"}
+              ],
+              "description": {
+                "en": "Wields a long sword hidden in her shamisen, evading attacks with graceful movements. Some skills build her Spirit Gauge faster.",
+                "zh": "使用藏在三味線裡的特製太刀，以輕盈的優雅姿態回避攻擊。部分招式可快速累積練氣計量表，提升練氣計量表階段。"
+              },
+              "description_zh_status": "official_outlanders",
+              "sources": ["official-site-en", "official-site-glanguage-zhtw"]
+            },
+            {
+              "id": "rhodes",
+              "name": {"en": "Rhodes", "zh": "官方繁體中文名稱未見於本次查核的 zh-tw 語言包"},
+              "name_zh_status": "official_tc_absent",
+              "chips": [
+                {"en": "Assault", "zh": "進擊型"},
+                {"en": "Hammer", "zh": "官方繁體中文武器名未收錄", "zh_status": "official_tc_absent"}
+              ],
+              "description": {
+                "en": "He wields a mighty and heavy hammer. By using different charged attacks, he gains and converts energy. He can also consume energy with certain moves to unleash a powerful explosion, dealing massive damage.",
+                "zh": "他揮舞沉重的錘子（官方英文武器名是 Hammer；本次查核的 zh-tw 語言包沒有這個武器的中文名）。不同的蓄力攻擊會取得並轉換能量，部分招式消耗這些能量，放出強力爆炸並造成大量傷害。"
+              },
+              "description_zh_status": "provisional_translation",
+              "sources": ["official-site-en"]
+            },
+            {
+              "id": "haze",
+              "name": {"en": "Haze", "zh": "官方繁體中文名稱未見於本次查核的 zh-tw 語言包"},
+              "name_zh_status": "official_tc_absent",
+              "chips": [
+                {"en": "Support", "zh": "支援型"},
+                {"en": "Dual Blades", "zh": "雙劍"}
+              ],
+              "description": {
+                "en": "She wields the dual blades as swift as the wind and unleashes rapid consecutive slashes at incredible speed. While in Archdemon Mode, some moves allow her to parry attacks depending on the situation, or continuously consume the Demon Gauge to unleash Crimson Fang Slash as a follow-up attack.",
+                "zh": "她的雙劍快如風，能以極高速度連續斬擊。處於 Archdemon Mode 時，部分招式可視情況招架，或持續消耗 Demon Gauge，再接出 Crimson Fang Slash。這段中文是臨時翻譯；招式英文名在本次查核的 zh-tw 語言包沒有對應條目。"
+              },
+              "description_zh_status": "provisional_translation",
+              "sources": ["official-site-en"]
+            },
+            {
+              "id": "ryunosuke",
+              "name": {"en": "Ryunosuke", "zh": "官方繁體中文名稱未見於本次查核的 zh-tw 語言包"},
+              "name_zh_status": "official_tc_absent",
+              "chips": [
+                {"en": "Support", "zh": "支援型"},
+                {"en": "Long Sword", "zh": "太刀"}
+              ],
+              "description": {
+                "en": "He wields a long sword effortlessly and can gain energy by eating in certain stances. Different moves provide different energy, and after becoming Well-fed, his Spirit Blade attacks become significantly more powerful.",
+                "zh": "他輕鬆使用太刀，並能在特定姿勢下進食來取得能量。不同招式提供的能量不同。成為 Well-fed 之後，Spirit Blade 攻擊會明顯變強。這段中文是臨時翻譯；Well-fed 與 Spirit Blade 沒有收進本次查核的 zh-tw 語言包。"
+              },
+              "description_zh_status": "provisional_translation",
+              "sources": ["official-site-en"]
+            },
+            {
+              "id": "luxheart",
+              "name": {"en": "Luxheart", "zh": "官方繁體中文名稱未見於本次查核的 zh-tw 語言包"},
+              "name_zh_status": "official_tc_absent",
+              "chips": [
+                {"en": "Disruptor", "zh": "控場型"},
+                {"en": "Great Sword", "zh": "大劍"}
+              ],
+              "description": {
+                "en": "He wields a dazzling and ever-changing great sword, and uses Heat to switch between different attack stances. Some moves allow him to release the accumulated energy into a spectacular barrage of firework-like attacks.",
+                "zh": "他使用耀眼且多變的大劍，以 Heat 切換不同的攻擊姿勢。部分招式會把累積的能量一次放出，變成如煙火般的連續攻擊。這段中文是臨時翻譯；Heat 沒有收進本次查核的 zh-tw 語言包。"
+              },
+              "description_zh_status": "provisional_translation",
+              "sources": ["official-site-en"]
+            },
+            {
+              "id": "pyro",
+              "name": {"en": "Pyro", "zh": "炎囂"},
+              "name_zh_status": "official_outlanders",
+              "chips": [
+                {"en": "Assault", "zh": "進擊型"},
+                {"en": "Great Sword", "zh": "大劍"}
+              ],
+              "description": {
+                "en": "Wields a mighty great sword, turning the pain of battle into overwhelming power. Endures attacks to fuel earth-shattering blows that unleash incredible burst damage.",
+                "zh": "使用豪邁剛猛的大劍，以承受傷害來強化自身招式，進而迸發出豪邁的一擊，造成爆發性的傷害。"
+              },
+              "description_zh_status": "official_outlanders",
+              "sources": ["official-site-en", "official-site-glanguage-zhtw"]
+            },
+            {
+              "id": "keres",
+              "name": {"en": "Keres", "zh": "克蕾絲"},
+              "name_zh_status": "official_outlanders",
+              "chips": [
+                {"en": "Disruptor", "zh": "控場型"},
+                {"en": "Dual Blades", "zh": "雙劍"}
+              ],
+              "description": {
+                "en": "Wields dual blades, chaining rapid strikes into relentless combos with blinding speed. Some skills unlock enhanced follow-ups, overwhelming targets with an unending flurry of slashes.",
+                "zh": "使用迅捷凌厲的雙劍，高速連斬可造成多段傷害。滿足條件後，部分招式可派生強化連斬，連綿不絕的斬擊能持續壓制目標。"
+              },
+              "description_zh_status": "official_outlanders",
+              "sources": ["official-site-en", "official-site-glanguage-zhtw"]
+            },
+            {
+              "id": "luka",
+              "name": {"en": "Luka", "zh": "路加"},
+              "name_zh_status": "official_outlanders",
+              "chips": [
+                {"en": "Assault", "zh": "進擊型"},
+                {"en": "Bow", "zh": "弓"}
+              ],
+              "description": {
+                "en": "Wields a lightning-wreathed bow, darting across the battlefield with unmatched mobility. Some skills power up the Thunder Coating on the arrows on precise casts. Arrows with Thunder Coating unleash crackling arcs that pierce clean through.",
+                "zh": "使用電流纏繞的長弓，具有靈活位移的高機動性。部分招式抓準時機出招可累積電流瓶能量，使用能量射出的電弧可造成貫通傷害。"
+              },
+              "description_zh_status": "official_outlanders",
+              "note": {
+                "en": "The official weapon label on the site is Bow. The official zh-tw blurb for Luka says 長弓. Both are from the locale checked on 10 November 2026.",
+                "zh": "官方網站的武器標籤是 Bow（語言包作「弓」）。路加的官方 zh-tw 簡介寫的是「長弓」。兩處都來自 2026年11月10日查核的語言包。"
+              },
+              "sources": ["official-site-en", "official-site-glanguage-zhtw"]
+            },
+            {
+              "id": "arkaya",
+              "name": {"en": "Arkaya", "zh": "阿坎亞"},
+              "name_zh_status": "official_outlanders",
+              "chips": [
+                {"en": "Support", "zh": "支援型"},
+                {"en": "Lance", "zh": "長槍"}
+              ],
+              "description": {
+                "en": "Wields a stalwart lance that builds Resolve through a steady stream of attacks. Some skills consume all Resolve to power a devastating blow while granting a massive shield.",
+                "zh": "使用守勢強勁的長槍，持續進攻同時提升鬥志。部分招式會耗用全部鬥志，發出強力一擊並獲得高防護值。"
+              },
+              "description_zh_status": "official_outlanders",
+              "sources": ["official-site-en", "official-site-glanguage-zhtw"]
+            },
+            {
+              "id": "raya",
+              "name": {"en": "Raya", "zh": "拉雅"},
+              "name_zh_status": "official_outlanders",
+              "chips": [
+                {"en": "Disruptor", "zh": "控場型"},
+                {"en": "Dual Blades", "zh": "雙劍"}
+              ],
+              "description": {
+                "en": "Uses swift, agile dual blades, slipping past attacks with fluid, dance-like movements. Some skills consume stamina to build her Demon Gauge faster.",
+                "zh": "使用靈巧鋒利的雙刀，以靈活的舞蹈姿態回避攻擊。部分招式可通過消耗耐力快速累積鬼人計量表，從而進行鬼人化。"
+              },
+              "description_zh_status": "official_outlanders",
+              "note": {
+                "en": "The zh-tw blurb is copied from the official locale. That string still uses the simplified characters 通过 and 从而.",
+                "zh": "這段繁體位置的句子直接來自官方 zh-tw 語言包，原文仍用了簡體字「通过」和「从而」。本手冊沒有改寫這句官方用字。"
+              },
+              "sources": ["official-site-en", "official-site-glanguage-zhtw"]
+            },
+            {
+              "id": "ouyang-varen",
+              "name": {"en": "Ouyang Varen", "zh": "歐陽拓"},
+              "name_zh_status": "official_outlanders",
+              "chips": [
+                {"en": "Assault", "zh": "進擊型"},
+                {"en": "Lance", "zh": "長槍"}
+              ],
+              "description": {
+                "en": "Wields a sturdy lance with strong guard capabilities, using his shield to deflect attacks. Certain skills build Impetus, powering his thrusts to deal increased damage.",
+                "zh": "使用攻守兼備的長槍，能運用靈巧的身法和盾牌招架攻擊。部分招式可累積鋒銳層數，消耗後強化突刺，造成巨大傷害。"
+              },
+              "description_zh_status": "official_outlanders",
+              "note": {
+                "en": "The English site name is Ouyang Varen. The official zh-tw locale name is 歐陽拓.",
+                "zh": "英文網站寫 Ouyang Varen。官方 zh-tw 語言包的名字是「歐陽拓」。"
+              },
+              "sources": ["official-site-en", "official-site-glanguage-zhtw"]
+            },
+            {
+              "id": "madelyn",
+              "name": {"en": "Madelyn", "zh": "瑪德琳"},
+              "name_zh_status": "official_outlanders",
+              "chips": [
+                {"en": "Support", "zh": "支援型"},
+                {"en": "Bow", "zh": "弓"}
+              ],
+              "description": {
+                "en": "Uses a precise bow and supports allies with medicines and Spores. Certain skills apply Spores that can be detonated, dealing damage and boosting her and nearby allies.",
+                "zh": "使用精準敏捷的弓，運用毒藥與孢子輔助戰鬥。部分招式可對目標附著孢子，引爆孢子可對怪物造成傷害並強化自己與隊友。"
+              },
+              "description_zh_status": "official_outlanders",
+              "sources": ["official-site-en", "official-site-glanguage-zhtw"]
+            },
+            {
+              "id": "pepper",
+              "name": {"en": "Pepper", "zh": "佩佩"},
+              "name_zh_status": "official_outlanders",
+              "chips": [
+                {"en": "Disruptor", "zh": "控場型"},
+                {"en": "Heavy Bowgun", "zh": "重弩槍"}
+              ],
+              "description": {
+                "en": "Uses a heavy bowgun to unleash powerful shots from range. Some skills send her airborne, letting her fire rapidly from midair.",
+                "zh": "使用火力強大的重弩槍，能進入騰空狀態戰鬥。部分招式可進入騰空狀態，在空中進行快速連續射擊。"
+              },
+              "description_zh_status": "official_outlanders",
+              "sources": ["official-site-en", "official-site-glanguage-zhtw"]
+            }
+          ]
+        },
+        {
+          "id": "buddies",
+          "title": {"en": "Buddies", "zh": "隨從"},
+          "intro": {
+            "en": "Garena’s 24 July 2026 announcement says every Adventurer is accompanied by a Buddy, and that nurturing can make them more dependable. It does not publish growth numbers. The three Buddies below are the ones named on the official site.",
+            "zh": "Garena 2026年7月24日的英文公告說，每位冒險家都有隨從同行，培養之後可以變得更可靠。公告沒有公布成長數值。下面三種是官方網站點名的隨從。"
+          },
+          "items": [
+            {
+              "id": "rutaco",
+              "name": {"en": "Rutaco", "zh": "露塔可"},
+              "name_zh_status": "official_outlanders",
+              "chips": [
+                {"en": "Buddy", "zh": "隨從"},
+                {"en": "Disruptor", "zh": "控場型"}
+              ],
+              "description": {
+                "en": "Buddies native to Aesoland, skilled at using tools and Radiantite to build.",
+                "zh": "本作登場的全新隨從，生活在埃索島上，擅長使用工具和融石技藝進行建造。"
+              },
+              "description_zh_status": "official_outlanders",
+              "note": {
+                "en": "The official zh-tw label is 隨從露塔可.",
+                "zh": "官方 zh-tw 語言包的標籤是「隨從露塔可」。"
+              },
+              "sources": ["official-site-en", "official-site-glanguage-zhtw", "garena-launch-announce"]
+            },
+            {
+              "id": "trillan",
+              "name": {"en": "Trillan", "zh": "梅朵鸝"},
+              "name_zh_status": "official_outlanders",
+              "chips": [
+                {"en": "Buddy", "zh": "隨從"},
+                {"en": "Support", "zh": "支援型"}
+              ],
+              "description": {
+                "en": "Buddies native to Aesoland, skilled at using their voices to support Adventurers.",
+                "zh": "本作登場的全新隨從，生活在埃索島上，擅長利用自己的歌聲為冒險家提供支援。"
+              },
+              "description_zh_status": "official_outlanders",
+              "note": {
+                "en": "The official zh-tw label is 隨從梅朵鸝.",
+                "zh": "官方 zh-tw 語言包的標籤是「隨從梅朵鸝」。"
+              },
+              "sources": ["official-site-en", "official-site-glanguage-zhtw", "garena-launch-announce"]
+            },
+            {
+              "id": "palico",
+              "name": {"en": "Palico", "zh": "艾露"},
+              "name_zh_status": "official_outlanders",
+              "chips": [
+                {"en": "Buddy", "zh": "隨從"},
+                {"en": "Assault", "zh": "進擊型"}
+              ],
+              "description": {
+                "en": "Buddies who journeyed with Adventurers to Aesoland, skilled with various weapons and items.",
+                "zh": "跟隨冒險家一起來到埃索島的獸人隨從，擅長使用各種武器和道具。"
+              },
+              "description_zh_status": "official_outlanders",
+              "note": {
+                "en": "The official zh-tw label is 隨從艾露.",
+                "zh": "官方 zh-tw 語言包的標籤是「隨從艾露」。"
+              },
+              "sources": ["official-site-en", "official-site-glanguage-zhtw", "garena-launch-announce"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "weapons",
+      "nav": {"en": "Weapons", "zh": "武器"},
+      "title": {"en": "Weapons named in official materials", "zh": "官方資料點名的武器"},
+      "lede": {
+        "en": "The official site says these are classic series weapons with original skills, and that you control how skills come out. Google Play’s listing names eight classic weapon types and says more weapons will join in later updates. It also says each weapon forms a unique combination with Adventurers and adds follow-up moves. This page only repeats move details that an official Adventurer blurb actually states. It is not a full move list, and it does not copy move lists from World, Wilds, or Now.",
+        "zh": "官方網站說這些是系列經典武器，加上原創技能，出招由玩家掌控。Google Play 的商店說明點名八種經典武器，並說之後的更新還會加入更多武器；也說每種武器會和冒險家組成獨特搭配，並有追加的追擊招式。本頁只複述官方冒險家簡介裡真正寫出的招式內容，不是完整招式表，也不從《世界》《Wilds》或 Now 抄動作表。"
+      },
+      "sources": ["official-site-en", "official-site-glanguage-zhtw", "google-play-listing"],
+      "groups": [
+        {
+          "id": "featured-weapons",
+          "title": {"en": "Used by a featured Adventurer", "zh": "已有官方冒險家使用"},
+          "items": [
+            {
+              "id": "long-sword",
+              "name": {"en": "Long Sword", "zh": "太刀"},
+              "name_zh_status": "official_outlanders",
+              "description": {
+                "en": "Midori’s official blurb names a Spirit Gauge. Ryunosuke’s official blurb names stance eating, a Well-fed state, and Spirit Blade attacks. Ryunosuke has no official Traditional Chinese name in the zh-tw pack checked on 10 November 2026.",
+                "zh": "米多麗的官方簡介寫到練氣計量表。Ryunosuke 的官方英文簡介寫到在特定姿勢進食、Well-fed 狀態，以及 Spirit Blade。Ryunosuke 在本次查核的 zh-tw 語言包沒有官方繁體中文名。"
+              },
+              "description_zh_status": "provisional_translation",
+              "links": ["midori", "ryunosuke"],
+              "sources": ["official-site-en", "official-site-glanguage-zhtw"]
+            },
+            {
+              "id": "hammer",
+              "name": {"en": "Hammer", "zh": "官方繁體中文武器名未收錄"},
+              "name_zh_status": "official_tc_absent",
+              "description": {
+                "en": "Rhodes is the featured Hammer Adventurer. His blurb describes charged attacks that gain and convert energy, and moves that spend that energy on a powerful explosion. No official Traditional Chinese weapon name was in the zh-tw pack.",
+                "zh": "使用 Hammer 的官方冒險家是 Rhodes。他的英文簡介寫蓄力攻擊會取得並轉換能量，部分招式消耗能量打出強力爆炸。zh-tw 語言包沒有這個武器的官方繁體中文名。這段中文是臨時翻譯。"
+              },
+              "description_zh_status": "provisional_translation",
+              "links": ["rhodes"],
+              "sources": ["official-site-en", "google-play-listing"]
+            },
+            {
+              "id": "dual-blades",
+              "name": {"en": "Dual Blades", "zh": "雙劍"},
+              "name_zh_status": "official_outlanders",
+              "description": {
+                "en": "Raya, Keres, and Haze are the featured Dual Blades Adventurers. Raya’s official text names stamina, a Demon Gauge, and demon mode. Keres’s official text names enhanced follow-up slashes. Haze’s English text names Archdemon Mode, a parry, the Demon Gauge, and Crimson Fang Slash. Haze has no official Traditional Chinese profile in the pack checked.",
+                "zh": "官方列出的雙劍冒險家是拉雅、克蕾絲和 Haze。拉雅的官方中文寫到耐力、鬼人計量表和鬼人化。克蕾絲的官方中文寫到派生強化連斬。Haze 的英文簡介寫到 Archdemon Mode、招架、Demon Gauge 和 Crimson Fang Slash。Haze 在本次查核的語言包沒有官方繁體中文介紹。"
+              },
+              "description_zh_status": "provisional_translation",
+              "links": ["raya", "keres", "haze"],
+              "sources": ["official-site-en", "official-site-glanguage-zhtw"]
+            },
+            {
+              "id": "great-sword",
+              "name": {"en": "Great Sword", "zh": "大劍"},
+              "name_zh_status": "official_outlanders",
+              "description": {
+                "en": "Pyro and Luxheart are the featured Great Sword Adventurers. Pyro’s official text says enduring attacks powers a burst hit. Luxheart’s English text names Heat, stance changes, and a firework-like release of stored energy. Luxheart has no official Traditional Chinese profile in the pack checked.",
+                "zh": "官方列出的大劍冒險家是炎囂和 Luxheart。炎囂的官方中文寫以承受傷害來強化招式，再打出爆發性的一擊。Luxheart 的英文簡介寫到以 Heat 切換姿勢，並把能量一次放出。Luxheart 在本次查核的語言包沒有官方繁體中文介紹。"
+              },
+              "description_zh_status": "provisional_translation",
+              "links": ["pyro", "luxheart"],
+              "sources": ["official-site-en", "official-site-glanguage-zhtw"]
+            },
+            {
+              "id": "bow",
+              "name": {"en": "Bow", "zh": "弓"},
+              "name_zh_status": "official_outlanders",
+              "description": {
+                "en": "Luka and Madelyn are the featured Bow Adventurers. Luka’s official text names Thunder Coating and piercing electric arcs. Madelyn’s official text names medicines, Spores, and a detonation that damages a monster and strengthens her and nearby allies.",
+                "zh": "官方列出的弓冒險家是路加和瑪德琳。路加的官方中文寫到電流瓶和可貫通的電弧，並在句子裡用了「長弓」。瑪德琳的官方中文寫到毒藥、孢子，以及引爆後傷害怪物並強化自己和隊友。"
+              },
+              "description_zh_status": "provisional_translation",
+              "links": ["luka", "madelyn"],
+              "sources": ["official-site-en", "official-site-glanguage-zhtw"]
+            },
+            {
+              "id": "lance",
+              "name": {"en": "Lance", "zh": "長槍"},
+              "name_zh_status": "official_outlanders",
+              "description": {
+                "en": "Arkaya and Ouyang Varen are the featured Lance Adventurers. Arkaya’s official text names Resolve and a hit that spends all of it while granting a large shield. Ouyang Varen’s official text names a shield deflect, Impetus in English, and 鋒銳層數 in the zh-tw blurb.",
+                "zh": "官方列出的長槍冒險家是阿坎亞和歐陽拓。阿坎亞的官方中文寫到鬥志，以及耗盡鬥志的一擊和高防護。歐陽拓的官方中文寫到盾牌招架和鋒銳層數；英文簡介把對應機制稱為 Impetus。"
+              },
+              "description_zh_status": "provisional_translation",
+              "links": ["arkaya", "ouyang-varen"],
+              "sources": ["official-site-en", "official-site-glanguage-zhtw"]
+            },
+            {
+              "id": "heavy-bowgun",
+              "name": {"en": "Heavy Bowgun", "zh": "重弩槍"},
+              "name_zh_status": "official_outlanders",
+              "description": {
+                "en": "Pepper is the featured Heavy Bowgun Adventurer. Her official text says some skills send her airborne so she can fire rapidly from midair.",
+                "zh": "官方列出的重弩槍冒險家是佩佩。她的官方中文寫到部分招式可以進入騰空狀態，在空中快速連續射擊。"
+              },
+              "description_zh_status": "provisional_translation",
+              "links": ["pepper"],
+              "sources": ["official-site-en", "official-site-glanguage-zhtw"]
+            }
+          ]
+        },
+        {
+          "id": "named-without-profile",
+          "title": {"en": "Named, without a featured Adventurer profile", "zh": "有點名，但沒有對應的冒險家介紹"},
+          "items": [
+            {
+              "id": "charge-blade",
+              "name": {"en": "Charge Blade", "zh": "官方繁體中文武器名未收錄"},
+              "name_zh_status": "official_tc_absent",
+              "description": {
+                "en": "Google Play’s listing, checked 10 November 2026, names Charge Blade as one of eight classic weapon types and says more weapons will be added in future updates. The official website’s 13 featured Adventurers do not include a Charge Blade user, and the zh-tw locale checked the same day has no Charge Blade string. No move description is given here because none was published in those sources.",
+                "zh": "2026年11月10日查核的 Google Play 說明把 Charge Blade 列為八種經典武器之一，並說之後還會加入更多武器。同一天的官方網站 13 位冒險家介紹裡，沒有人使用 Charge Blade；zh-tw 語言包也沒有這個武器的條目。這裡不寫招式，因為那些來源沒有公布招式。"
+              },
+              "description_zh_status": "provisional_translation",
+              "sources": ["google-play-listing", "official-site-en", "official-site-glanguage-zhtw"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "aesoland",
+      "nav": {"en": "Aesoland", "zh": "埃索島"},
+      "title": {"en": "Aesoland and exploration", "zh": "埃索島與探索"},
+      "lede": {
+        "en": "Official copy names one hunting island, Aesoland, and describes exploration, weather, and building. It does not publish a labelled region map. This section stops where those sources stop.",
+        "zh": "官方文案點名一座狩獵之島「埃索島」，並描述探索、天氣和建造。沒有公布帶地名的區域地圖。本節就停在這些來源寫到的地方。"
+      },
+      "sources": ["official-site-glanguage-zhtw", "garena-launch-announce", "official-site-en"],
+      "blocks": [
+        {
+          "title": {"en": "What is named", "zh": "已經點名的內容"},
+          "paragraphs": [
+            {
+              "en": "The official zh-tw locale calls the island 埃索島. English pages call it Aesoland. Garena’s 24 July 2026 announcement says players set foot in Aesoland, “a land divided into multiple regions based on terrain and weather conditions.” The official site’s feature lines, checked 10 November 2026, say you gather resources and build facilities, open a freely explored adventure, meet changing weather and terrain, and experience a vast hunting world.",
+              "zh": "官方 zh-tw 語言包把這座島稱為埃索島，英文頁稱為 Aesoland。Garena 2026年7月24日的英文公告說，玩家踏上 Aesoland，那是「依地形和天氣分成多個區域的土地」。2026年11月10日查核的官方網站特色文案則說：採集資源、建造設施、開啟自由探索、迎接多變的天氣與地貌，並體驗遼闊的狩獵世界。",
+              "zh_status": "provisional_translation"
+            },
+            {
+              "en": "The same Garena article names three field tools from the building system: launchers, ziplines, and gliding facilities. It says they let you explore each region from more than one angle, and that you can find special items and clues tied to assignments. It also says you can watch monsters hunt, taunt, and interact, and use that while hunting. No material costs, build limits, or assignment list were included.",
+              "zh": "同一篇 Garena 英文公告點名建造系統的三種野外工具：發射器（launchers）、滑索（ziplines）和滑翔設施（gliding facilities）。公告說這些工具讓人從不同角度探索每個區域，也能找到特殊物品和與任務有關的線索；探索時可以觀察魔物狩獵、挑釁和互相影響，並把觀察用在狩獵上。公告沒有材料消耗、建造上限或任務清單。這段中文是臨時翻譯。",
+              "zh_status": "provisional_translation"
+            }
+          ]
+        },
+        {
+          "title": {"en": "What was not published", "zh": "這次沒有公布的內容"},
+          "paragraphs": [
+            {
+              "en": "The official site, its zh-tw locale, and the Garena articles checked on 10 November 2026 do not name the individual regions, show a map, or give coordinates. This guide does not invent region names or a map. There is also no published weakness chart or gathering drop table in those sources.",
+              "zh": "2026年11月10日查核的官方網站、zh-tw 語言包和 Garena 文章，都沒有寫出各區域的名字，也沒有地圖或座標。本手冊不編造區域名或地圖。這些來源同樣沒有弱點表或採集掉落表。",
+              "zh_status": "provisional_translation"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hunting",
+      "nav": {"en": "Hunting", "zh": "狩獵"},
+      "title": {"en": "Hunting, parties, and getting started", "zh": "狩獵、組隊與入門"},
+      "lede": {
+        "en": "A practical reading of what official launch materials actually say about how you hunt, who you hunt with, and what they do not specify. Editorial notes are marked separately from those facts.",
+        "zh": "這裡只整理官方上市資料真正寫過的狩獵方式、可和誰一起狩獵，以及它們沒有寫清的部分。編輯建議和這些事實分開標示。"
+      },
+      "sources": ["garena-launch-announce", "garena-hunting-faq", "google-play-listing", "official-site-en", "official-site-glanguage-zhtw", "capcom-launch"],
+      "blocks": [
+        {
+          "title": {"en": "Verified from official pages", "zh": "官方頁面已寫明"},
+          "paragraphs": [
+            {
+              "en": "Garena describes the game as a mobile survival hunting action game, licensed and supervised by Capcom and developed by TiMi Studio Group. Capcom’s 29 September 2026 release and Garena’s Hunting FAQ both put launch on 29 October 2026. The FAQ time is 06:00 (UTC+8). The official site lists iOS and Android, and says controller support is yes. The FAQ says in-game languages include Traditional Chinese, switched under Settings, then Language.",
+              "zh": "Garena 把遊戲描述為手機上的生存狩獵動作遊戲，由 Capcom 授權並監修，天美工作室群開發。Capcom 2026年9月29日的新聞和 Garena 的 Hunting FAQ 都把上市日放在 2026年10月29日。FAQ 寫的時間是 06:00（UTC+8）。官方網站列出 iOS 與 Android，並寫控制器支援為 yes。FAQ 說遊戲內語言包含繁體中文，可在設定裡的語言項目切換。這段中文是依這些英文官方頁做的臨時翻譯。",
+              "zh_status": "provisional_translation"
+            },
+            {
+              "en": "Garena’s July announcement says mobile controls were refined so a combo can be performed with one button, while keeping series-style action. Google Play says you can explore alone or form a 4-player hunting squad. Garena says real-time parties of up to four split roles, support each other, and combine co-op skills. The official site calls that system Co-Op Skills (共鬥技 in the zh-tw pack) and says coordination comes from how you use them together. Garena also names fixed-team and adventure-guild social systems, without publishing their rules.",
+              "zh": "Garena 7月的公告說，手機操作經過調整，一套連段可以用一個按鈕打出，同時保留系列的動作感。Google Play 說可以自己探索，或組成 4 人狩獵小隊。Garena 說最多 4 人的即時隊伍會分工、互相支援，並組合共鬥技能。官方網站稱這套系統為 Co-Op Skills，zh-tw 語言包寫「共鬥技」，並說默契來自操作上的配合。Garena 也點名固定隊伍和冒險公會這類社交系統，但沒有公布規則。除共鬥技的官方譯名外，這段其餘中文是臨時翻譯。",
+              "zh_status": "provisional_translation"
+            },
+            {
+              "en": "The July announcement says you gather materials and craft your own equipment. It does not list recipes, weapon trees, or drop rates. The monster section of this guide already excludes weaknesses for the same reason: the public pages checked do not publish them.",
+              "zh": "7月的公告說玩家會採集素材並打造自己的裝備。它沒有配方、武器派生樹或掉落率。本手冊的魔物篇同樣不列弱點，原因一樣：查核過的公開頁面沒有公布這些表。這段中文是臨時翻譯。",
+              "zh_status": "provisional_translation"
+            },
+            {
+              "en": "Garena’s 28 October 2026 FAQ says the launch servers are Korea, Asia Pacific, MidEast Africa, and Latam, on iOS and Android. Server data is separate and cannot be transferred. Cross-server parties, friend requests, and joining the same squad are not supported; friends need characters on the same server. Daily refresh is 05:00:00 server time. Recommended devices in that FAQ: iOS 17 or later, iPhone 13 Pro or later, 6 GB RAM or more; Android 12 or later, Snapdragon 8 Gen 2 or Dimensity 9200 or later, 8 GB RAM or more. Minimum in that FAQ: iOS 15 or later, iPhone 8 Plus or later, 3 GB RAM or more; Android 9 or later, Snapdragon 835 or Dimensity 920 or later, 4 GB RAM or more. The official site’s own recommended line is shorter: iOS 17 or later or Android 12 or later, and 6 GB RAM or more. Where the two differ, the FAQ is the more detailed launch note and the site line is the shorter one.",
+              "zh": "Garena 2026年10月28日的 FAQ 說，上市伺服器是韓國、亞太、中東非洲和拉丁美洲，平台是 iOS 與 Android。各伺服器資料獨立，不能轉移。不能跨伺服器組隊、加好友或加入同一小隊；和朋友玩需要在同一台伺服器建角色。每日刷新是伺服器時間 05:00:00。該 FAQ 的建議裝置：iOS 17 或以上、iPhone 13 Pro 或以上、記憶體 6 GB 或以上；Android 12 或以上、驍龍 8 Gen 2 或天璣 9200 或以上、記憶體 8 GB 或以上。FAQ 的最低需求：iOS 15 或以上、iPhone 8 Plus 或以上、記憶體 3 GB 或以上；Android 9 或以上、驍龍 835 或天璣 920 或以上、記憶體 4 GB 或以上。官方網站自己的建議行比較短：iOS 17 或以上，或 Android 12 或以上，記憶體 6 GB 或以上。兩處不一致時，FAQ 是較詳細的上市說明，網站是較短的那一行。這段中文是臨時翻譯。",
+              "zh_status": "provisional_translation"
+            }
+          ]
+        },
+        {
+          "title": {"en": "Editorial notes, not game rules", "zh": "編輯建議，不是遊戲規則"},
+          "editorial": true,
+          "paragraphs": [
+            {
+              "en": "Start from a featured Adventurer, not from a loose weapon. Each published profile is one person with one weapon. Assault (進擊型), Support (支援型), and Disruptor (控場型) are the official class names. They describe the published role. They are not a tier list, and this guide has no damage numbers to rank them.",
+              "zh": "從官方已介紹的冒險家選起，而不是先假設武器可以任意配給任何人。每一則公開介紹都是一個人搭配一種武器。進擊型、支援型、控場型是官方定位名稱，用來說明公開的角色分工，不是強度排行。本手冊沒有傷害數字可以替他們排名。",
+              "zh_status": "provisional_translation"
+            },
+            {
+              "en": "If a Chinese line says the official Traditional Chinese name was not in the zh-tw pack, use the English name beside it. That English name is the one on the official site. Do not treat a blank or a caveat as a translated name.",
+              "zh": "如果中文行寫著官方繁體中文名不在 zh-tw 語言包裡，請用旁邊的英文名。那個英文名就是官方網站上的名字。不要把空位或這句說明當成譯名。",
+              "zh_status": "provisional_translation"
+            },
+            {
+              "en": "For a first hunt, the sourced shape is: learn the one published blurb for your Adventurer, watch what the monster does, and use a party of up to four on the same server if you want the co-op skills the announcements describe. Anything finer than that — exact buttons beyond the “one button combo” line, item recipes, or region routes — was not in the sources checked on 10 November 2026.",
+              "zh": "若只按已查到的資料準備第一場狩獵：先讀你這位冒險家那則公開簡介，觀察魔物在做什麼，想用公告裡的共鬥技就在同一台伺服器組最多 4 人。比這更細的內容，例如「一鍵連段」之外的按鍵、道具配方或區域路線，都不在 2026年11月10日查核的來源裡。",
+              "zh_status": "provisional_translation"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
