@@ -10,13 +10,15 @@ Researched **10 November 2026** (Hong Kong time, UTC+8).
 
 ## Open the guide
 
-`index.html` and `index.linked.html` are the same linked page: CSS, script, and monster data are in the file, and artwork loads from `assets/web/`. From the playground repository root:
+The guide is several static pages. Monsters stay at `outlanders-guide/`. Adventurers, weapons, Aesoland, and hunting each have their own folder. From the playground repository root:
 
 ```bash
 python3 -m http.server 8080
 ```
 
-Then open <http://127.0.0.1:8080/outlanders-guide/>.
+Then open <http://127.0.0.1:8080/outlanders-guide/>. The other pages are `adventurers/`, `weapons/`, `aesoland/`, and `hunting/`.
+
+To add a chapter, add an object to `data/sections.json` (its `id` becomes the folder name) and run `python3 scripts/build_site.py`.
 
 `python3 scripts/build_site.py --standalone` writes `index.standalone.html` with artwork inlined. That file is gitignored and is not published.
 
@@ -69,8 +71,12 @@ python3 tests/test_guide.py
 
 | Path | Purpose |
 | --- | --- |
-| `index.html` | Published page. Artwork loads from `assets/web/` |
-| `index.linked.html` | Same linked page, kept under the original filename |
+| `index.html` | Monster roster. This is the guide home |
+| `adventurers/` | Featured adventurers and buddies |
+| `weapons/` | Weapons named in official materials |
+| `aesoland/` | Island and exploration, limited to published facts |
+| `hunting/` | Parties, crafting notes, and launch details |
+| `guide.css`, `monsters.js` | Shared style, and the roster script. Other pages do not load `monsters.js` |
 | `assets/web/` | Optimized official artwork packaged locally |
 | `data/monsters.json` | Monster records, citations, name/description status |
 | `data/sources.json` | Primary source catalogue |
