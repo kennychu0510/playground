@@ -1,0 +1,261 @@
+{
+  "as_of": "2026-11-10",
+  "sources": [
+    {
+      "id": "official-site-en",
+      "kind": "official_website",
+      "title": {
+        "en": "Official Monster Hunter Outlanders website (English)",
+        "zh": "《魔物獵人：旅人》官方網站（英文）"
+      },
+      "url": "https://monsterhunteroutlanders.com/en/",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "official-site-glanguage-zhtw",
+      "kind": "official_website",
+      "title": {
+        "en": "Official site Traditional Chinese locale strings (zh-tw in official glanguage.js)",
+        "zh": "官方網站繁體中文文案（官方 glanguage.js 的 zh-tw 語言包）"
+      },
+      "url": "https://monsterhunteroutlanders.com/js/glanguage.js",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "garena-ruger-en",
+      "kind": "official_announcement",
+      "title": {
+        "en": "Garena official news: Ruger Aidal reveal at gamescom 2026 (English)",
+        "zh": "Garena 官方新聞：gamescom 2026 公布光稜龍（英文）"
+      },
+      "url": "https://mho.garena.com/en/news/TTBRXV",
+      "date": "2026-08-26",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "garena-ruger-zhtw",
+      "kind": "official_announcement",
+      "title": {
+        "en": "Garena official Traditional Chinese news: original Elder Dragon 光稜龍",
+        "zh": "Garena 官方繁體中文新聞：原創古龍種「光稜龍」公開"
+      },
+      "url": "https://mho.garena.com/zh_tw/news/RN4YWN",
+      "date": "2026-08-31",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "capcom-launch",
+      "kind": "official_announcement",
+      "title": {
+        "en": "Capcom press release: launch on 29 October 2026",
+        "zh": "Capcom 新聞稿：2026年10月29日推出"
+      },
+      "url": "https://www.capcom.co.jp/ir/english/news/html/e260929.html",
+      "date": "2026-09-29",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "x-comp-1",
+      "kind": "official_social",
+      "title": {
+        "en": "Official @MHO_English Monster Info Compilation ①",
+        "zh": "官方 @MHO_English Monster Info Compilation ①"
+      },
+      "url": "https://x.com/MHO_English/status/2109584869097455999",
+      "date": "2026-10-12",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "x-comp-2",
+      "kind": "official_social",
+      "title": {
+        "en": "Official @MHO_English Monster Info Compilation ②",
+        "zh": "官方 @MHO_English Monster Info Compilation ②"
+      },
+      "url": "https://x.com/MHO_English/status/2109947260473954800",
+      "date": "2026-10-13",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "x-comp-3",
+      "kind": "official_social",
+      "title": {
+        "en": "Official @MHO_English Monster Info Compilation ③",
+        "zh": "官方 @MHO_English Monster Info Compilation ③"
+      },
+      "url": "https://x.com/MHO_English/status/2111306209844236604",
+      "date": "2026-10-17",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "x-comp-4",
+      "kind": "official_social",
+      "title": {
+        "en": "Official @MHO_English Monster Info Compilation ④",
+        "zh": "官方 @MHO_English Monster Info Compilation ④"
+      },
+      "url": "https://x.com/MHO_English/status/2116424939612028932",
+      "date": "2026-10-31",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "x-comp-5",
+      "kind": "official_social",
+      "title": {
+        "en": "Official @MHO_English Monster Info Compilation ⑤",
+        "zh": "官方 @MHO_English Monster Info Compilation ⑤"
+      },
+      "url": "https://x.com/MHO_English/status/2116787326009381282",
+      "date": "2026-11-01",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "x-comp-6",
+      "kind": "official_social",
+      "title": {
+        "en": "Official @MHO_English Monster Info Compilation ⑥",
+        "zh": "官方 @MHO_English Monster Info Compilation ⑥"
+      },
+      "url": "https://x.com/MHO_English/status/2117874491628081218",
+      "date": "2026-11-04",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "x-ruger-info",
+      "kind": "official_social",
+      "title": {
+        "en": "Official @MHO_English Monster Info — Ruger Aidal",
+        "zh": "官方 @MHO_English Monster Info — 光稜龍"
+      },
+      "url": "https://x.com/MHO_English/status/2092446937509466412",
+      "date": "2026-08-26",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "x-kushala-info",
+      "kind": "official_social",
+      "title": {
+        "en": "Official @MHO_English Monster Info — Kushala Daora",
+        "zh": "官方 @MHO_English Monster Info — 鋼龍"
+      },
+      "url": "https://x.com/MHO_English/status/2088128481464816074",
+      "date": "2026-08-14",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "x-nergi-info",
+      "kind": "official_social",
+      "title": {
+        "en": "Official @MHO_English Monster Info — Nergigante",
+        "zh": "官方 @MHO_English Monster Info — 滅盡龍"
+      },
+      "url": "https://x.com/MHO_English/status/2093307616315249012",
+      "date": "2026-08-28",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "x-calendar",
+      "kind": "official_social",
+      "title": {
+        "en": "Official @MHO_English November Event Calendar (Season 0 — First Half)",
+        "zh": "官方 @MHO_English 十一月活動行事曆（Season 0 上半）"
+      },
+      "url": "https://x.com/MHO_English/status/2117572508610125990",
+      "date": "2026-11-03",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "x-apex-ruger",
+      "kind": "official_social",
+      "title": {
+        "en": "Official @MHO_English: Apex Challenge starts — Ruger Aidal",
+        "zh": "官方 @MHO_English：Apex Challenge 開始（光稜龍）"
+      },
+      "url": "https://x.com/MHO_English/status/2118886151671218613",
+      "date": "2026-11-07",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "x-radiant-hunt-kulu",
+      "kind": "official_social",
+      "title": {
+        "en": "Official @MHO_English: Radiant Hunt features Radiant Kulu-Ya-Ku",
+        "zh": "官方 @MHO_English：Radiant Hunt 本週魔物為融光種搔鳥"
+      },
+      "url": "https://x.com/MHO_English/status/2118652110463988139",
+      "date": "2026-11-06",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "x-nergi-cbt",
+      "kind": "official_social",
+      "title": {
+        "en": "Official @MHO_English: 3rd Closed Beta — Nergigante Approaches",
+        "zh": "官方 @MHO_English：第三次封閉測試「Nergigante Approaches」"
+      },
+      "url": "https://x.com/MHO_English/status/2093186817432699151",
+      "date": "2026-08-28",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "capcom-hk-eco-01",
+      "kind": "official_series_localization",
+      "title": {
+        "en": "Capcom official Monster Hunter: World (Hong Kong) — Ancient Forest",
+        "zh": "Capcom 官方《魔物獵人：世界》（香港）古樹森林"
+      },
+      "url": "https://www.monsterhunter.com/world/hk/ecosystem/01.html",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "capcom-hk-eco-02",
+      "kind": "official_series_localization",
+      "title": {
+        "en": "Capcom official Monster Hunter: World (Hong Kong) — Wildspire Waste",
+        "zh": "Capcom 官方《魔物獵人：世界》（香港）大蟻塚荒地"
+      },
+      "url": "https://www.monsterhunter.com/world/hk/ecosystem/02.html",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "capcom-hk-eco-03",
+      "kind": "official_series_localization",
+      "title": {
+        "en": "Capcom official Monster Hunter: World (Hong Kong) — Coral Highlands",
+        "zh": "Capcom 官方《魔物獵人：世界》（香港）陸珊瑚台地"
+      },
+      "url": "https://www.monsterhunter.com/world/hk/ecosystem/03.html",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "capcom-hk-eco-04",
+      "kind": "official_series_localization",
+      "title": {
+        "en": "Capcom official Monster Hunter: World (Hong Kong) — Rotten Vale",
+        "zh": "Capcom 官方《魔物獵人：世界》（香港）瘴氣之谷"
+      },
+      "url": "https://www.monsterhunter.com/world/hk/ecosystem/04.html",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "capcom-hk-eco-05",
+      "kind": "official_series_localization",
+      "title": {
+        "en": "Capcom official Monster Hunter: World (Hong Kong) — Elder's Recess",
+        "zh": "Capcom 官方《魔物獵人：世界》（香港）龍結晶之地"
+      },
+      "url": "https://www.monsterhunter.com/world/hk/ecosystem/05.html",
+      "accessed": "2026-11-10"
+    },
+    {
+      "id": "capcom-hk-iceborne",
+      "kind": "official_series_localization",
+      "title": {
+        "en": "Capcom official Monster Hunter World: Iceborne (Hong Kong) monster page",
+        "zh": "Capcom 官方《魔物獵人世界：Iceborne》（香港）魔物頁"
+      },
+      "url": "https://www.monsterhunter.com/world-iceborne/hk/monster/",
+      "accessed": "2026-11-10"
+    }
+  ]
+}

@@ -1,0 +1,410 @@
+# -*- coding: utf-8 -*-
+import json
+from pathlib import Path
+
+ROOT = Path("/workspace/outlanders-guide")
+
+SOURCES = {
+  "official-site-en": {
+    "kind": "official_website",
+    "title": {"en": "Official Monster Hunter Outlanders website (English)", "zh": "《魔物獵人：旅人》官方網站（英文）"},
+    "url": "https://monsterhunteroutlanders.com/en/",
+    "accessed": "2026-11-10"
+  },
+  "official-site-glanguage-zhtw": {
+    "kind": "official_website",
+    "title": {"en": "Official site Traditional Chinese locale strings (zh-tw in official glanguage.js)", "zh": "官方網站繁體中文文案（官方 glanguage.js 的 zh-tw 語言包）"},
+    "url": "https://monsterhunteroutlanders.com/js/glanguage.js",
+    "accessed": "2026-11-10"
+  },
+  "garena-ruger-en": {
+    "kind": "official_announcement",
+    "title": {"en": "Garena official news: Ruger Aidal reveal at gamescom 2026 (English)", "zh": "Garena 官方新聞：gamescom 2026 公布光稜龍（英文）"},
+    "url": "https://mho.garena.com/en/news/TTBRXV",
+    "date": "2026-08-26",
+    "accessed": "2026-11-10"
+  },
+  "garena-ruger-zhtw": {
+    "kind": "official_announcement",
+    "title": {"en": "Garena official Traditional Chinese news: original Elder Dragon 光稜龍", "zh": "Garena 官方繁體中文新聞：原創古龍種「光稜龍」公開"},
+    "url": "https://mho.garena.com/zh_tw/news/RN4YWN",
+    "date": "2026-08-31",
+    "accessed": "2026-11-10"
+  },
+  "capcom-launch": {
+    "kind": "official_announcement",
+    "title": {"en": "Capcom press release: launch on 29 October 2026", "zh": "Capcom 新聞稿：2026年10月29日推出"},
+    "url": "https://www.capcom.co.jp/ir/english/news/html/e260929.html",
+    "date": "2026-09-29",
+    "accessed": "2026-11-10"
+  },
+  "x-comp-1": {"kind":"official_social","title":{"en":"Official @MHO_English Monster Info Compilation ①","zh":"官方 @MHO_English Monster Info Compilation ①"},"url":"https://x.com/MHO_English/status/2109584869097455999","date":"2026-10-12","accessed":"2026-11-10"},
+  "x-comp-2": {"kind":"official_social","title":{"en":"Official @MHO_English Monster Info Compilation ②","zh":"官方 @MHO_English Monster Info Compilation ②"},"url":"https://x.com/MHO_English/status/2109947260473954800","date":"2026-10-13","accessed":"2026-11-10"},
+  "x-comp-3": {"kind":"official_social","title":{"en":"Official @MHO_English Monster Info Compilation ③","zh":"官方 @MHO_English Monster Info Compilation ③"},"url":"https://x.com/MHO_English/status/2111306209844236604","date":"2026-10-17","accessed":"2026-11-10"},
+  "x-comp-4": {"kind":"official_social","title":{"en":"Official @MHO_English Monster Info Compilation ④","zh":"官方 @MHO_English Monster Info Compilation ④"},"url":"https://x.com/MHO_English/status/2116424939612028932","date":"2026-10-31","accessed":"2026-11-10"},
+  "x-comp-5": {"kind":"official_social","title":{"en":"Official @MHO_English Monster Info Compilation ⑤","zh":"官方 @MHO_English Monster Info Compilation ⑤"},"url":"https://x.com/MHO_English/status/2116787326009381282","date":"2026-11-01","accessed":"2026-11-10"},
+  "x-comp-6": {"kind":"official_social","title":{"en":"Official @MHO_English Monster Info Compilation ⑥","zh":"官方 @MHO_English Monster Info Compilation ⑥"},"url":"https://x.com/MHO_English/status/2117874491628081218","date":"2026-11-04","accessed":"2026-11-10"},
+  "x-ruger-info": {"kind":"official_social","title":{"en":"Official @MHO_English Monster Info — Ruger Aidal","zh":"官方 @MHO_English Monster Info — 光稜龍"},"url":"https://x.com/MHO_English/status/2092446937509466412","date":"2026-08-26","accessed":"2026-11-10"},
+  "x-kushala-info": {"kind":"official_social","title":{"en":"Official @MHO_English Monster Info — Kushala Daora","zh":"官方 @MHO_English Monster Info — 鋼龍"},"url":"https://x.com/MHO_English/status/2088128481464816074","date":"2026-08-14","accessed":"2026-11-10"},
+  "x-nergi-info": {"kind":"official_social","title":{"en":"Official @MHO_English Monster Info — Nergigante","zh":"官方 @MHO_English Monster Info — 滅盡龍"},"url":"https://x.com/MHO_English/status/2093307616315249012","date":"2026-08-28","accessed":"2026-11-10"},
+  "x-calendar": {"kind":"official_social","title":{"en":"Official @MHO_English November Event Calendar (Season 0 — First Half)","zh":"官方 @MHO_English 十一月活動行事曆（Season 0 上半）"},"url":"https://x.com/MHO_English/status/2117572508610125990","date":"2026-11-03","accessed":"2026-11-10"},
+  "x-apex-ruger": {"kind":"official_social","title":{"en":"Official @MHO_English: Apex Challenge starts — Ruger Aidal","zh":"官方 @MHO_English：Apex Challenge 開始（光稜龍）"},"url":"https://x.com/MHO_English/status/2118886151671218613","date":"2026-11-07","accessed":"2026-11-10"},
+  "x-radiant-hunt-kulu": {"kind":"official_social","title":{"en":"Official @MHO_English: Radiant Hunt features Radiant Kulu-Ya-Ku","zh":"官方 @MHO_English：Radiant Hunt 本週魔物為融光種搔鳥"},"url":"https://x.com/MHO_English/status/2118652110463988139","date":"2026-11-06","accessed":"2026-11-10"},
+  "x-nergi-cbt": {"kind":"official_social","title":{"en":"Official @MHO_English: 3rd Closed Beta — Nergigante Approaches","zh":"官方 @MHO_English：第三次封閉測試「Nergigante Approaches」"},"url":"https://x.com/MHO_English/status/2093186817432699151","date":"2026-08-28","accessed":"2026-11-10"},
+  "capcom-hk-eco-01": {"kind":"official_series_localization","title":{"en":"Capcom official Monster Hunter: World (Hong Kong) — Ancient Forest","zh":"Capcom 官方《魔物獵人：世界》（香港）古樹森林"},"url":"https://www.monsterhunter.com/world/hk/ecosystem/01.html","accessed":"2026-11-10"},
+  "capcom-hk-eco-02": {"kind":"official_series_localization","title":{"en":"Capcom official Monster Hunter: World (Hong Kong) — Wildspire Waste","zh":"Capcom 官方《魔物獵人：世界》（香港）大蟻塚荒地"},"url":"https://www.monsterhunter.com/world/hk/ecosystem/02.html","accessed":"2026-11-10"},
+  "capcom-hk-eco-03": {"kind":"official_series_localization","title":{"en":"Capcom official Monster Hunter: World (Hong Kong) — Coral Highlands","zh":"Capcom 官方《魔物獵人：世界》（香港）陸珊瑚台地"},"url":"https://www.monsterhunter.com/world/hk/ecosystem/03.html","accessed":"2026-11-10"},
+  "capcom-hk-eco-04": {"kind":"official_series_localization","title":{"en":"Capcom official Monster Hunter: World (Hong Kong) — Rotten Vale","zh":"Capcom 官方《魔物獵人：世界》（香港）瘴氣之谷"},"url":"https://www.monsterhunter.com/world/hk/ecosystem/04.html","accessed":"2026-11-10"},
+  "capcom-hk-eco-05": {"kind":"official_series_localization","title":{"en":"Capcom official Monster Hunter: World (Hong Kong) — Elder's Recess","zh":"Capcom 官方《魔物獵人：世界》（香港）龍結晶之地"},"url":"https://www.monsterhunter.com/world/hk/ecosystem/05.html","accessed":"2026-11-10"},
+  "capcom-hk-iceborne": {"kind":"official_series_localization","title":{"en":"Capcom official Monster Hunter World: Iceborne (Hong Kong) monster page","zh":"Capcom 官方《魔物獵人世界：Iceborne》（香港）魔物頁"},"url":"https://www.monsterhunter.com/world-iceborne/hk/monster/","accessed":"2026-11-10"},
+}
+
+def M(id, sort, category, species_class, form, confirmation, name_en, name_zh, name_zh_status, name_zh_note,
+      desc_en, desc_en_source, desc_zh, desc_zh_status, images, sources, notes_en="", notes_zh="", extra=None):
+    rec = {
+        "id": id,
+        "sort": sort,
+        "category": category,  # elder-dragon | radiant | standard | subspecies
+        "species_class": species_class,
+        "form": form,  # original | standard | subspecies | radiant
+        "confirmation": confirmation,  # official_featured | official_upcoming | official_prelaunch
+        "name": {"en": name_en, "zh": name_zh},
+        "name_zh_status": name_zh_status,
+        "name_zh_note": name_zh_note,
+        "description": {"en": desc_en, "zh": desc_zh},
+        "description_en_source": desc_en_source,
+        "description_zh_status": desc_zh_status,
+        "images": images,
+        "sources": sources,
+        "notes": {"en": notes_en, "zh": notes_zh},
+    }
+    if extra:
+        rec.update(extra)
+    return rec
+
+OUT_PREF = "Official Outlanders Traditional Chinese name"
+SERIES = "Established Capcom Traditional Chinese series name from the official Monster Hunter: World (Hong Kong) site; the Outlanders-specific form uses the official prefix 融光種."
+SERIES_ONLY = "Established Capcom Traditional Chinese series name from the official Monster Hunter: World (Hong Kong) site. No separate Outlanders-specific renaming was found."
+OUT_PLUS_SERIES = "Official Outlanders prefix 融光種 combined with a Capcom official Monster Hunter: World (Hong Kong) series name."
+
+def img(mid, hero_src, card_ok=True):
+    return {
+        "hero": f"assets/web/{mid}-hero.jpg",
+        "card": f"assets/web/{mid}-card.jpg",
+        "credit": {"en": "Official artwork. ©CAPCOM / ©2026 Proxima Beta Pte. Ltd.", "zh": "官方美術。©CAPCOM／©2026 Proxima Beta Pte. Ltd."},
+        "source_url": hero_src,
+    }
+
+monsters = [
+M("ruger-aidal", 10, "elder-dragon", "elder-dragon", "original", "official_featured",
+  "Ruger Aidal", "光稜龍", "official_outlanders",
+  "Official Outlanders-specific Traditional Chinese name from Garena's official zh-TW announcement. Original Elder Dragon; not a returning series monster.",
+  "An elder dragon newly discovered on Aesoland. It hardens the radiant particles that coat its body into armor, using them for both offense and defense. It can also draw in radiant particles from its surroundings to unleash powerful attacks.",
+  "x-ruger-info",
+  "「光稜龍」是《魔物獵人：旅人》的主要魔物，也是本作首次登場的原創古龍種。牠背負一對巨翼，翼面透出如光箭般的燦爛光芒，遠望宛如一顆懸浮在天上的太陽。關於牠的目擊記錄極少，如今僅存於埃索島代代口傳的古老傳說裡。官方魔物介紹亦寫道：牠會將覆於體表的光素硬化成鎧甲，兼顧攻防，並可吸收周圍光素釋出強力攻擊。",
+  "official_outlanders",
+  img("ruger-aidal", "https://x.com/MHO_English/status/2092446937509466412"),
+  ["x-ruger-info","garena-ruger-zhtw","garena-ruger-en","x-apex-ruger","x-calendar"],
+  "Flagship original Elder Dragon. Official Apex Challenge (challenge Ruger Aidal) opened 7 November 2026 and runs through the end of Season 0. Official English description taken from the Monster Info post; the Traditional Chinese description follows Garena's official zh-TW announcement, with the Monster Info mechanics also reflected.",
+  "本作原創旗艦古龍。官方 Apex Challenge（挑戰光稜龍）已於 2026 年 11 月 7 日開始，並持續至 Season 0 結束。英文簡介取自官方 Monster Info；繁體中文簡介以 Garena 官方新聞為準，並補入官方 Monster Info 所述的光素鎧甲與吸光攻擊。",
+),
+M("kushala-daora", 20, "elder-dragon", "elder-dragon", "standard", "official_upcoming",
+  "Kushala Daora", "鋼龍", "official_outlanders_and_series",
+  "Official Outlanders Traditional Chinese name in Garena's official zh-TW announcement, matching the Capcom official Monster Hunter: World (Hong Kong) series name 鋼龍.",
+  "Elder Dragons that shield themselves with fierce winds, preventing anyone from approaching them. Their skin consists of hard, metallic scales.",
+  "x-kushala-info",
+  "以烈風護身、不讓任何人靠近的古龍種。體表覆蓋堅硬的金屬鱗片。",
+  "provisional_translation",
+  img("kushala-daora", "https://x.com/MHO_English/status/2088128481464816074"),
+  ["x-kushala-info","garena-ruger-zhtw","garena-ruger-en","x-calendar","capcom-hk-eco-05"],
+  "Officially introduced in a Monster Info post (14 August 2026) and named in Garena's gamescom announcement as a classic monster that will appear on Aesoland. The official Season 0 First Half event calendar (posted 3 November 2026) schedules the Kushala Daora-themed event “When Steelwing Descends” for 13–26 November 2026. As of 10 November 2026 that event had not yet started. Official calendar copy notes that published content and timing are subject to change.",
+  "已於 2026 年 8 月 14 日的官方 Monster Info 介紹，並在 Garena 科隆展新聞中列為將於埃索島登場的系列經典魔物。官方 Season 0 上半行事曆（2026 年 11 月 3 日公布）將鋼龍主題活動「When Steelwing Descends」排於 11 月 13 至 26 日。截至 2026 年 11 月 10 日該活動尚未開始。行事曆註明內容與時間或會更改。繁體簡介為官方英文介紹的臨時翻譯。",
+),
+M("nergigante", 30, "elder-dragon", "elder-dragon", "standard", "official_prelaunch",
+  "Nergigante", "滅盡龍", "official_outlanders_and_series",
+  "Official Outlanders Traditional Chinese name in Garena's official zh-TW announcement, matching the Capcom official Monster Hunter: World (Hong Kong) series name 滅盡龍.",
+  "Terrible Elder Dragons that appear when other elders are in the vicinity. Their penchant for destruction is well-documented.",
+  "x-nergi-info",
+  "會在其他古龍附近出現的可怖古龍種。其破壞傾向早已被充分記載。",
+  "provisional_translation",
+  img("nergigante", "https://x.com/MHO_English/status/2093307616315249012"),
+  ["x-nergi-info","garena-ruger-zhtw","garena-ruger-en","x-nergi-cbt","capcom-hk-eco-05"],
+  "Officially introduced in a Monster Info post (28 August 2026) and named in Garena's gamescom announcement as a classic monster that will appear on Aesoland. It was also the target of an official 3rd Closed Beta event, “Nergigante Approaches” (28 August–11 September 2026). It does not appear in official post-launch Monster Info Compilations ①–⑥ (12 October–4 November 2026), and it is not listed on the official Season 0 First Half event calendar (29 October–27 November 2026). This guide therefore treats it as officially announced, not as a verified post-launch featured hunt.",
+  "已於 2026 年 8 月 28 日的官方 Monster Info 介紹，並在 Garena 科隆展新聞中列為將於埃索島登場的系列經典魔物。第三次封閉測試亦有官方活動「Nergigante Approaches」（8 月 28 日至 9 月 11 日）。它未出現在官方上線後 Monster Info Compilation ① 至 ⑥（10 月 12 日至 11 月 4 日），亦未列於官方 Season 0 上半行事曆（10 月 29 日至 11 月 27 日）。本手冊因此將其標為「官方已公布」，而非已核實的上線後重點狩獵。繁體簡介為官方英文介紹的臨時翻譯。",
+),
+
+# Standard
+M("rathalos", 110, "standard", "flying-wyvern", "standard", "official_featured",
+  "Rathalos", "火龍", "official_outlanders",
+  "Official Outlanders Traditional Chinese name on the official site zh-tw locale, matching the Capcom official World (Hong Kong) series name.",
+  "The apex monster of the forests, also known as the \"King of the Skies.\" Terrible wyverns that descend upon invaders, attacking with poison claws and fiery breath.",
+  "official-site-en",
+  "立於森林生態系統頂點的「空之王者」。會在地盤上留下鱗片及爪痕，即使入侵者為魔物，也會毫不留情發動襲擊。",
+  "official_outlanders",
+  img("rathalos", "https://monsterhunteroutlanders.com/en/"),
+  ["official-site-en","official-site-glanguage-zhtw","x-comp-6","capcom-hk-eco-01"],
+),
+M("diablos", 120, "standard", "flying-wyvern", "standard", "official_featured",
+  "Diablos", "角龍", "official_outlanders_and_series",
+  "Official Outlanders Traditional Chinese name in Garena's official zh-TW announcement, matching the Capcom official World (Hong Kong) series name 角龍.",
+  "Apex monsters of the desert regions with intense territorial instincts and tyrannical aggression. Any prey that makes too much noise on the surface of their territory is dragged underground.",
+  "x-comp-3",
+  "沙漠地帶的頂級魔物，地盤意識極強，性情霸道。只要獵物在其領地地表發出過多聲響，就會被拖入地底。",
+  "provisional_translation",
+  img("diablos", "https://x.com/MHO_English/status/2111306209844236604"),
+  ["x-comp-3","garena-ruger-zhtw","capcom-hk-eco-02"],
+),
+M("odogaron", 130, "standard", "fanged-wyvern", "standard", "official_featured",
+  "Odogaron", "慘爪龍", "official_series",
+  "Capcom official Monster Hunter: World (Hong Kong) series name 慘爪龍, also referenced on the official Iceborne (Hong Kong) monster page. No separate Outlanders-specific renaming was found.",
+  "Terrifying monsters that scour for carrion. Their highly aggressive nature means that anything, be it monster or man, is a potential meal.",
+  "x-comp-5",
+  "四處搜尋腐肉的可怖魔物。生性極為兇猛，無論是魔物還是人類，都可能成為牠的獵物。",
+  "provisional_translation",
+  img("odogaron", "https://x.com/MHO_English/status/2116787326009381282"),
+  ["x-comp-5","capcom-hk-eco-04","capcom-hk-iceborne"],
+),
+
+# Subspecies
+M("pink-rathian", 210, "subspecies", "flying-wyvern", "subspecies", "official_featured",
+  "Pink Rathian", "櫻火龍", "official_outlanders",
+  "Official Outlanders Traditional Chinese name on the official site zh-tw locale.",
+  "A subspecies with vibrant pink scales. Pink Rathians wield their toxic tails more deftly than normal Rathians, weakening prey with poison before moving in for the kill.",
+  "official-site-en",
+  "擁有鮮豔櫻花色甲殼的亞種雌火龍。含有劇毒的尾巴揮舞得比通常種更靈活，狩獵時習性逐步削弱獵物再給予最後一擊。",
+  "official_outlanders",
+  img("pink-rathian", "https://monsterhunteroutlanders.com/en/"),
+  ["official-site-en","official-site-glanguage-zhtw","x-comp-6"],
+),
+M("black-diablos", 220, "subspecies", "flying-wyvern", "subspecies", "official_featured",
+  "Black Diablos", "黑角龍", "established_series_unverified_live_page",
+  "Established Traditional Chinese series name for Black Diablos (ディアブロス亜種). Unlike 櫻火龍, this string was not found on the official Outlanders zh-tw locale or on the Capcom HK World / Iceborne / Rise marketing pages checked on 10 November 2026.",
+  "These black-shelled Diablos are actually female Diablos in heat. The color signals their aggressiveness and heightened hostility to other creatures in their habitat.",
+  "x-comp-3",
+  "這類黑甲角龍其實是處於發情期的雌性角龍。體色標示其攻擊性，以及對棲地內其他生物更高的敵意。",
+  "provisional_translation",
+  img("black-diablos", "https://x.com/MHO_English/status/2111306209844236604"),
+  ["x-comp-3"],
+),
+
+# Radiant — official site
+M("radiant-rathalos", 310, "radiant", "flying-wyvern", "radiant", "official_featured",
+  "Radiant Rathalos", "融光種火龍", "official_outlanders",
+  "Official Outlanders Traditional Chinese name on the official site zh-tw locale.",
+  "Radiantite-corrupted Flying Wyverns capable of breathing near-molten flames. As absolute sovereigns of their domains, they deliver catastrophic punishment to anyone who dares challenge their authority.",
+  "official-site-en",
+  "融光化的飛龍種，能吐出接近液化的火焰。在領地內是絕對的主宰者，觸犯其威嚴者將遭受毀滅性懲罰。",
+  "official_outlanders",
+  img("radiant-rathalos", "https://monsterhunteroutlanders.com/en/"),
+  ["official-site-en","official-site-glanguage-zhtw","x-comp-6"],
+),
+M("radiant-rathian", 320, "radiant", "flying-wyvern", "radiant", "official_featured",
+  "Radiant Rathian", "融光種雌火龍", "official_outlanders",
+  "Official Outlanders Traditional Chinese name on the official site zh-tw locale.",
+  "Radiantite-corrupted Flying Wyverns unique to Aesoland. With drastically enhanced mobility and more developed venom glands, they employ diverse methods to inject venom into their prey.",
+  "official-site-en",
+  "埃索島特有的融光化飛龍種，運動能力大幅提升，毒腺更加發達，有多種手段可將毒液注入獵物體內。",
+  "official_outlanders",
+  img("radiant-rathian", "https://monsterhunteroutlanders.com/en/"),
+  ["official-site-en","official-site-glanguage-zhtw","x-comp-6"],
+),
+M("radiant-diablos", 330, "radiant", "flying-wyvern", "radiant", "official_featured",
+  "Radiant Diablos", "融光種角龍", "official_outlanders",
+  "Official Outlanders Traditional Chinese name on the official site zh-tw locale.",
+  "Radiantite-corrupted Flying Wyverns unique to Aesoland. Their horns have become far more robust, capable of easily shattering surrounding rock. This allows them to move freely beneath the ground.",
+  "x-comp-3",
+  "埃索島特有的融光化飛龍種，犄角變得更堅固，能輕易粉碎周圍的岩石。對牠而言，地底環境暢行無阻。",
+  "official_outlanders",
+  img("radiant-diablos", "https://monsterhunteroutlanders.com/en/"),
+  ["official-site-en","official-site-glanguage-zhtw","x-comp-3"],
+  "English description taken from the official Monster Info Compilation ③ card, which is slightly more specific than the official website blurb. Traditional Chinese description is the official site zh-tw locale string.",
+  "英文簡介取自官方 Monster Info Compilation ③ 圖卡（較官網英文略詳）。繁體中文簡介為官方網站 zh-tw 文案。",
+),
+M("radiant-anjanath", 340, "radiant", "brute-wyvern", "radiant", "official_featured",
+  "Radiant Anjanath", "融光種蠻顎龍", "official_outlanders",
+  "Official Outlanders Traditional Chinese name on the official site zh-tw locale.",
+  "Radiantite-corrupted Brute Wyverns unique to Aesoland. They breathe more powerful flames and violently excavate Radiantite from the ground with their jaws to hurl at foes.",
+  "official-site-en",
+  "埃索島特有的融光化獸龍種，除了火焰吐息變得更強，還會用下顎粗暴掘地，挖出融石來拋擲攻擊。",
+  "official_outlanders",
+  img("radiant-anjanath", "https://monsterhunteroutlanders.com/en/"),
+  ["official-site-en","official-site-glanguage-zhtw","x-comp-1"],
+),
+M("radiant-kulu-ya-ku", 350, "radiant", "bird-wyvern", "radiant", "official_featured",
+  "Radiant Kulu-Ya-Ku", "融光種搔鳥", "official_outlanders",
+  "Official Outlanders Traditional Chinese name on the official site zh-tw locale.",
+  "Radiantite-corrupted Bird Wyverns unique to Aesoland. With significantly enhanced foreleg strength, they can keenly detect Radiantite buried underground and excavate it for use as weapons.",
+  "official-site-en",
+  "埃索島特有的融光化鳥龍種，前腳力量顯著增強。能敏銳感知埋藏於地底的融石，會將其挖出當成武器。",
+  "official_outlanders",
+  img("radiant-kulu-ya-ku", "https://monsterhunteroutlanders.com/en/"),
+  ["official-site-en","official-site-glanguage-zhtw","x-comp-1","x-radiant-hunt-kulu","x-calendar"],
+  "Featured in the official Radiant Hunt challenge beginning 6 November 2026 (the official post names Radiant Kulu-Ya-Ku). The official Season 0 calendar lists a Radiant Hunt: Kulu-Ya-Ku window of 29 October–8 November 2026.",
+  "官方 Radiant Hunt（2026 年 11 月 6 日起）本週魔物為融光種搔鳥。官方 Season 0 行事曆亦列出 Radiant Hunt: Kulu-Ya-Ku，日期為 10 月 29 日至 11 月 8 日。",
+),
+
+# Radiant — compilations only
+M("radiant-great-jagras", 410, "radiant", "fanged-wyvern", "radiant", "official_featured",
+  "Radiant Great Jagras", "融光種賊龍", "official_prefix_plus_series",
+  "Official Outlanders prefix 融光種 plus the Capcom official World (Hong Kong) series name 賊龍 (Great Jagras, listed on the Ancient Forest ecosystem page). A full Outlanders-specific Traditional Chinese string was not found on the official zh-tw locale.",
+  "Radiantite-corrupted Fanged Wyverns unique to Aesoland. Their appetites have grown significantly, allowing them to swallow larger prey than their common counterparts and rapidly digest it to recover their health.",
+  "x-comp-1",
+  "埃索島特有的融光化牙龍種。食量大增，能吞下比通常種更大的獵物，並迅速消化以恢復體力。",
+  "provisional_translation",
+  img("radiant-great-jagras", "https://x.com/MHO_English/status/2109584869097455999"),
+  ["x-comp-1","capcom-hk-eco-01"],
+),
+M("radiant-pukei-pukei", 420, "radiant", "bird-wyvern", "radiant", "official_featured",
+  "Radiant Pukei-Pukei", "融光種吐毒龍", "official_prefix_plus_series",
+  "Official Outlanders prefix 融光種 plus the Capcom official World (Hong Kong) series name 吐毒龍 (Pukei-Pukei).",
+  "Radiantite-corrupted Bird Wyverns unique to Aesoland. They can spew venom over a wide area, and their tails can store a large amount of venom for deadly spray attacks.",
+  "x-comp-1",
+  "埃索島特有的融光化鳥龍種。能向大範圍噴出毒液，尾部亦可儲存大量毒液，用於致命的噴射攻擊。",
+  "provisional_translation",
+  img("radiant-pukei-pukei", "https://x.com/MHO_English/status/2109584869097455999"),
+  ["x-comp-1","capcom-hk-eco-01","x-calendar"],
+  "The official Season 0 First Half calendar lists a later Radiant Hunt: Pukei-Pukei window of 23–29 November 2026. The calendar shortens the name; this guide does not treat that shorthand as a separate confirmation of a non-Radiant Pukei-Pukei hunt.",
+  "官方 Season 0 上半行事曆列有較後的 Radiant Hunt: Pukei-Pukei（11 月 23 至 29 日）。行事曆用了簡稱；本手冊不將該簡稱另行理解為通常種毒妖／吐毒龍的獨立確認。",
+),
+M("radiant-jyuratodus", 430, "radiant", "piscine-wyvern", "radiant", "official_featured",
+  "Radiant Jyuratodus", "融光種泥魚龍", "official_prefix_plus_series",
+  "Official Outlanders prefix 融光種 plus the Capcom official World (Hong Kong) series name 泥魚龍.",
+  "Radiantite-corrupted Piscine Wyverns unique to Aesoland. They spread mud over a wide area and lurk within the mud before launching consecutive leaping attacks.",
+  "x-comp-2",
+  "埃索島特有的融光化魚龍種。會向大範圍散布泥漿，潛伏其中再連續躍出攻擊。",
+  "provisional_translation",
+  img("radiant-jyuratodus", "https://x.com/MHO_English/status/2109947260473954800"),
+  ["x-comp-2","capcom-hk-eco-02"],
+),
+M("radiant-barroth", 440, "radiant", "brute-wyvern", "radiant", "official_featured",
+  "Radiant Barroth", "融光種土砂龍", "official_prefix_plus_series",
+  "Official Outlanders prefix 融光種 plus the Capcom official World (Hong Kong) series name 土砂龍.",
+  "Radiantite-corrupted Brute Wyverns unique to Aesoland. Their intense body heat thickens the mud coating their bodies, and they can chain charge after charge, making them far more dangerous.",
+  "x-comp-2",
+  "埃索島特有的融光化獸龍種。強烈體溫會使覆於身上的泥漿變得更厚，並能連續衝撞，威脅遠高於通常種。",
+  "provisional_translation",
+  img("radiant-barroth", "https://x.com/MHO_English/status/2109947260473954800"),
+  ["x-comp-2","capcom-hk-eco-02"],
+),
+M("radiant-tzitzi-ya-ku", 450, "radiant", "bird-wyvern", "radiant", "official_featured",
+  "Radiant Tzitzi-Ya-Ku", "融光種眩鳥", "official_prefix_plus_series",
+  "Official Outlanders prefix 融光種 plus the Capcom official World (Hong Kong) series name 眩鳥.",
+  "Radiantite-corrupted Bird Wyverns unique to Aesoland. The flash fins on their heads have grown tougher and more developed through mutation, capable of releasing intense flashes of light; they can also chase down prey relentlessly on powerful legs.",
+  "x-comp-4",
+  "埃索島特有的融光化鳥龍種。頭部的閃光鰭因變異而變得更堅韌、更發達，能放出強烈閃光；亦能憑強勁的腿力緊追獵物。",
+  "provisional_translation",
+  img("radiant-tzitzi-ya-ku", "https://x.com/MHO_English/status/2116424939612028932"),
+  ["x-comp-4","capcom-hk-eco-03"],
+),
+M("radiant-paolumu", 460, "radiant", "flying-wyvern", "radiant", "official_featured",
+  "Radiant Paolumu", "融光種浮空龍", "official_prefix_plus_series",
+  "Official Outlanders prefix 融光種 plus the Capcom official World (Hong Kong) series name 浮空龍.",
+  "Radiantite-corrupted Flying Wyverns unique to Aesoland. Their ability to store greater amounts of air in their neck pouches enhances their flight, making their flight paths unpredictable and allowing them to toy with prey before unleashing deadly attacks.",
+  "x-comp-4",
+  "埃索島特有的融光化飛龍種。頸囊能儲存更多空氣，飛行能力因而提升，軌跡更難預測，並可先戲弄獵物再施以致命攻擊。",
+  "provisional_translation",
+  img("radiant-paolumu", "https://x.com/MHO_English/status/2116424939612028932"),
+  ["x-comp-4","capcom-hk-eco-03","x-calendar"],
+  "The official Season 0 First Half calendar lists a Radiant Hunt: Paolumu window of 9–15 November 2026.",
+  "官方 Season 0 上半行事曆列有 Radiant Hunt: Paolumu（11 月 9 至 15 日）。",
+),
+M("radiant-legiana", 470, "radiant", "flying-wyvern", "radiant", "official_featured",
+  "Radiant Legiana", "融光種風漂龍", "official_prefix_plus_series",
+  "Official Outlanders prefix 融光種 plus the Capcom official World (Hong Kong) series name 風漂龍, also confirmed on the official Iceborne (Hong Kong) page (霜翼風漂龍).",
+  "Radiantite-corrupted Flying Wyverns unique to Aesoland. Their frost sacs have mutated, allowing them to generate more ice crystals. Their aerial attacks have also grown more powerful, letting them swiftly strike prey on the ground.",
+  "x-comp-4",
+  "埃索島特有的融光化飛龍種。冰霜袋產生變異，能製造更多冰晶。空中攻擊亦更強，可迅速襲擊地面上的獵物。",
+  "provisional_translation",
+  img("radiant-legiana", "https://x.com/MHO_English/status/2116424939612028932"),
+  ["x-comp-4","capcom-hk-eco-03","capcom-hk-iceborne"],
+),
+M("radiant-great-girros", 480, "radiant", "fanged-wyvern", "radiant", "official_featured",
+  "Radiant Great Girros", "融光種痺賊龍", "official_prefix_plus_series",
+  "Official Outlanders prefix 融光種 plus the Capcom official World (Hong Kong) series name 痺賊龍 (Great Girros).",
+  "Radiantite-corrupted Fanged Wyverns unique to Aesoland. They act in synergy with Radiant Girros. Additionally, as the pack forms, the Radiant Great Girros become riled up and more aggressive.",
+  "x-comp-5",
+  "埃索島特有的融光化牙龍種。會與融光種賊龍（小個體 Radiant Girros）協同行動。隨著群體集結，融光種痺賊龍會變得更激動、更具攻擊性。",
+  "provisional_translation",
+  img("radiant-great-girros", "https://x.com/MHO_English/status/2116787326009381282"),
+  ["x-comp-5","capcom-hk-eco-04"],
+  "The official English card names the smaller pack members “Radiant Girros.” Those small monsters are not given their own entry in this large-monster list.",
+  "官方英文圖卡提到群體中的「Radiant Girros」。這些小型魔物不另列為本篇大型魔物條目。括號內的「小個體」說明為本手冊為求清楚而加，並非官方中文原文。",
+),
+M("radiant-radobaan", 490, "radiant", "brute-wyvern", "radiant", "official_featured",
+  "Radiant Radobaan", "融光種骨鎚龍", "official_prefix_plus_series",
+  "Official Outlanders prefix 融光種 plus the Capcom official World (Hong Kong) series name 骨鎚龍 (note the official character 鎚, not 錘).",
+  "Radiantite-corrupted Brute Wyverns unique to Aesoland. The bone plates covering their bodies have also mutated into dangerous weapons, and the bone shards scattered by their attacks have grown more destructive.",
+  "x-comp-5",
+  "埃索島特有的融光化獸龍種。覆於身上的骨板亦變異成危險的武器，攻擊時飛散的骨片破壞力更強。",
+  "provisional_translation",
+  img("radiant-radobaan", "https://x.com/MHO_English/status/2116787326009381282"),
+  ["x-comp-5","capcom-hk-eco-04"],
+),
+M("radiant-tobi-kadachi", 500, "radiant", "fanged-wyvern", "radiant", "official_featured",
+  "Radiant Tobi-Kadachi", "融光種飛雷龍", "official_prefix_plus_series",
+  "Official Outlanders prefix 融光種 plus the Capcom official World (Hong Kong) series name 飛雷龍.",
+  "Radiantite-corrupted Fanged Wyverns unique to Aesoland. Their tails, especially affected by the mutation, have become far more dangerous—capable of channeling the static electricity stored in their fur into the ground, unleashing multiple powerful high-output electrostatic attacks.",
+  "x-comp-5",
+  "埃索島特有的融光化牙龍種。尾部受變異影響尤深，變得更加危險——能將蓄積於毛皮的靜電導入地面，連續放出強力高輸出的靜電攻擊。",
+  "provisional_translation",
+  img("radiant-tobi-kadachi", "https://x.com/MHO_English/status/2116787326009381282"),
+  ["x-comp-5","capcom-hk-eco-01"],
+),
+]
+
+guide = {
+  "meta": {
+    "schema": "mho-field-guide.monsters.v1",
+    "as_of": "2026-11-10",
+    "timezone": "Asia/Hong_Kong",
+    "game_title": {"en": "Monster Hunter Outlanders", "zh": "魔物獵人：旅人"},
+    "guide_title": {"en": "Monster Hunter Outlanders Field Guide", "zh": "《魔物獵人：旅人》狩獵手冊"},
+    "section": {"en": "Monsters", "zh": "魔物"},
+    "unofficial": True,
+    "monster_count": len(monsters),
+    "coverage_limits": {
+      "en": "This section lists 23 large monsters officially named on the official Outlanders website (and its Traditional Chinese locale file) or in official @MHO_English Monster Info posts reviewed on 10 November 2026. It is not presented as a complete in-game roster. Community databases describe additional standard forms and Radiant variants (for example standard Great Jagras or Radiant Odogaron) that were not named in those official sources; they are omitted here rather than marked confirmed. No combat statistics, weaknesses, or drop rates are included because official public materials reviewed for this guide do not publish them.",
+      "zh": "本篇列出 2026 年 11 月 10 日查核過的官方網站（及其繁體中文語言包）或官方 @MHO_English Monster Info 貼文中具名的 23 種大型魔物，並不作為完整遊戲內名單。社群資料庫另有記載其他通常種與融光種（例如通常種賊龍或融光種慘爪龍），但因未見於上述官方來源，本篇不予列為已確認。本手冊不收錄戰鬥數據、弱點或掉落率，因為本次查核的公開官方資料並未公布這些數值。"
+    }
+  },
+  "categories": [
+    {"id": "all", "en": "All", "zh": "全部"},
+    {"id": "elder-dragon", "en": "Elder Dragon", "zh": "古龍種"},
+    {"id": "radiant", "en": "Radiant", "zh": "融光種"},
+    {"id": "standard", "en": "Standard", "zh": "通常種"},
+    {"id": "subspecies", "en": "Subspecies", "zh": "亞種"}
+  ],
+  "species_classes": [
+    {"id": "elder-dragon", "en": "Elder Dragon", "zh": "古龍種"},
+    {"id": "flying-wyvern", "en": "Flying Wyvern", "zh": "飛龍種"},
+    {"id": "bird-wyvern", "en": "Bird Wyvern", "zh": "鳥龍種"},
+    {"id": "brute-wyvern", "en": "Brute Wyvern", "zh": "獸龍種"},
+    {"id": "fanged-wyvern", "en": "Fanged Wyvern", "zh": "牙龍種"},
+    {"id": "piscine-wyvern", "en": "Piscine Wyvern", "zh": "魚龍種"}
+  ],
+  "confirmation_labels": {
+    "official_featured": {"en": "Officially featured", "zh": "官方已介紹"},
+    "official_upcoming": {"en": "Officially scheduled", "zh": "官方已排程"},
+    "official_prelaunch": {"en": "Officially announced (pre-launch)", "zh": "官方已公布（上線前）"}
+  },
+  "monsters": monsters
+}
+
+out_s = ROOT/"data"/"sources.json"
+out_m = ROOT/"data"/"monsters.json"
+# normalize sources with ids
+sources_out = [{"id": k, **v} for k,v in SOURCES.items()]
+out_s.write_text(json.dumps({"as_of":"2026-11-10","sources": sources_out}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+out_m.write_text(json.dumps(guide, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+print("monsters", len(monsters))
+print("sources", len(sources_out))
+# invariants
+ids=[m["id"] for m in monsters]
+assert len(ids)==len(set(ids))
+for m in monsters:
+    assert m["name"]["en"] and m["name"]["zh"]
+    assert m["description"]["en"] and m["description"]["zh"]
+    assert m["sources"]
+    assert m["confirmation"] in ("official_featured","official_upcoming","official_prelaunch")
+    assert m["category"] in ("elder-dragon","radiant","standard","subspecies")
+print("data OK")
